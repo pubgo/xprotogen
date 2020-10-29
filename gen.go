@@ -34,6 +34,7 @@ func New(name string) *protoGen {
 }
 
 type protoGen struct {
+	init                func(pkg string, fd *descriptor.FileDescriptorProto, j *jen.File) error
 	name                string
 	request             plugin.CodeGeneratorRequest
 	response            plugin.CodeGeneratorResponse
@@ -50,15 +51,25 @@ func (t *protoGen) Save() (err error) {
 type Service struct {
 	*descriptor.ServiceDescriptorProto
 	Name string
-	pkg  string
+	Pkg  string
 	J    *jen.File
 }
 
-func (t *Service) TypeName(mthName string) string {
-	return getTypeName(t.pkg, mthName)
+func (t *Service) P(a ...interface{}) *jen.Statement {
+	return t.J.Id(fmt.Sprintln(a...))
 }
 
-func (t *protoGen) Service(fn func(s *Service)) error {
+func (t *Service) TypeName(mthName string) string {
+	return getTypeName(t.Pkg, mthName)
+}
+
+func (t *protoGen) Init(fn func(pkg string, fd *descriptor.FileDescriptorProto, j *jen.File) error) {
+	t.init = fn
+}
+
+func (t *protoGen) Service(fn func(s *Service)) (err error) {
+	defer xerror.RespErr(&err)
+
 	for _, name := range t.request.GetFileToGenerate() {
 		var fd *descriptor.FileDescriptorProto
 		for _, fd = range t.request.GetProtoFile() {
@@ -78,8 +89,12 @@ func (t *protoGen) Service(fn func(s *Service)) error {
 		pkg, _ := goPackageName(fd)
 		j := jen.NewFile(pkg)
 
+		if t.init != nil {
+			xerror.Panic(t.init(pkg, fd, j))
+		}
+
 		for _, ss := range fd.GetService() {
-			fn(&Service{J: j, ServiceDescriptorProto: ss, pkg: pkg, Name: CamelCase(ss.GetName())})
+			fn(&Service{J: j, ServiceDescriptorProto: ss, Pkg: pkg, Name: CamelCase(ss.GetName())})
 		}
 
 		if ext := path.Ext(name); ext == ".proto" {
@@ -154,8 +169,8 @@ func getGoPackage(fd *descriptor.FileDescriptorProto) string {
 
 // goPackageOption interprets the file's go_package option.
 // If there is no go_package, it returns ("", "", false).
-// If there's a simple name, it returns ("", pkg, true).
-// If the option implies an import path, it returns (impPath, pkg, true).
+// If there's a simple name, it returns ("", Pkg, true).
+// If the option implies an import path, it returns (impPath, Pkg, true).
 func goPackageOption(d *descriptor.FileDescriptorProto) (impPath, pkg string, ok bool) {
 	pkg = getGoPackage(d)
 	if pkg == "" {

@@ -6,6 +6,7 @@ proto: clear hello
    -I${GOPATH}/src/github.com/googleapis/googleapis \
    -I${PWD}/proto \
    --go_out=. \
+   --micro_out=. \
    --hello_out=. \
    --hello_opt=paths=source_relative,a=b,c=d \
    proto/*
@@ -15,3 +16,4 @@ clear:
 
 hello:
 	cd protoc-gen-hello && go install .
+	cd protoc-gen-micro && go install .

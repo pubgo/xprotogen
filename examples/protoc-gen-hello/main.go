@@ -13,16 +13,12 @@ const (
 )
 
 func main() {
-	defer xerror.Resp(func(err xerror.XErr) {
-		log.Println(err.Println())
-	})
-
 	hello := xprotogen.New("hello")
 	hello.Parameter(func(key, value string) {
 		log.Println("params:", key, "=", value)
 	})
 
-	xerror.Panic(hello.Service(func(ss *xprotogen.Service) {
+	xerror.Exit(hello.Service(func(ss *xprotogen.Service) {
 		j := ss.J
 		srv := ss.Name
 
@@ -56,5 +52,5 @@ func main() {
 		})
 	}))
 
-	xerror.Panic(hello.Save())
+	xerror.Exit(hello.Save())
 }
