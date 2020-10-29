@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package helloworld;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+import "proto/api1.proto";
+
+service TestApi {
+  rpc Version(helloworld.TestReq) returns (helloworld.TestApiOutput){
+    option (google.api.http) = {
+      post: "/v1/example/version"
+      body: "*"
+    };
+  }
+  rpc VersionTest(helloworld.TestReq) returns (helloworld.TestApiOutput){
+    option (google.api.http) = {
+      post: "/v1/example/versiontest"
+      body: "*"
+    };
+  }
+}
+
+service TestApiV2 {
+  rpc Version(helloworld.TestReq) returns (helloworld.TestApiOutput){
+    option (google.api.http) = {
+      post: "/v2/example/version"
+      body: "*"
+    };
+  }
+  rpc VersionTest(helloworld.TestReq) returns (helloworld.TestApiOutput){
+    option (google.api.http) = {
+      post: "/v2/example/versiontest"
+      body: "*"
+    };
+  }
+}
+
