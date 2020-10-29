@@ -1,17 +1,21 @@
 package xprotogen
 
 import (
-	"github.com/dave/jennifer/jen"
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/pubgo/xerror"
-	plugin "google.golang.org/protobuf/types/pluginpb"
+	"fmt"
 	"io/ioutil"
 	logger "log"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/dave/jennifer/jen"
+	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	"github.com/pubgo/xerror"
+	options "google.golang.org/genproto/googleapis/api/annotations"
+	"google.golang.org/protobuf/types/descriptorpb"
+	plugin "google.golang.org/protobuf/types/pluginpb"
 )
 
 var log = logger.New(os.Stderr, "", logger.LstdFlags|logger.Lshortfile)
@@ -339,4 +343,81 @@ func isScalar(field *descriptor.FieldDescriptorProto) bool {
 	default:
 		return false
 	}
+}
+
+func DefaultAPIOptions(pkg string, srv string, mth string) (*options.HttpRule, error) {
+	// This generates an HttpRule that matches the gRPC mapping to HTTP/2 described in
+	// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
+	// i.e.:
+	//   * method is POST
+	//   * path is "/<service name>/<method name>"
+	//   * body should contain the serialized request message
+	rule := &options.HttpRule{
+		Pattern: &options.HttpRule_Post{
+			Post: fmt.Sprintf("/%s.%s/%s", pkg, srv, mth),
+		},
+		Body: "*",
+	}
+	return rule, nil
+}
+
+func ExtractAPIOptions(mth *descriptorpb.MethodDescriptorProto) (*options.HttpRule, error) {
+	if mth.Options == nil {
+		return nil, nil
+	}
+
+	if !proto.HasExtension(mth.Options, options.E_Http) {
+		return nil, nil
+	}
+
+	ext, err := proto.GetExtension(mth.Options, options.E_Http)
+	if err != nil {
+		return nil, xerror.Wrap(err)
+	}
+
+	opts, ok := ext.(*options.HttpRule)
+	if !ok {
+		return nil, xerror.Fmt("extension is %T; want an HttpRule", ext)
+	}
+
+	return opts, nil
+}
+
+func ExtractHttpMethod(opts *options.HttpRule) (method string, path string) {
+	var (
+		httpMethod   string
+		pathTemplate string
+	)
+
+	switch {
+	case opts.GetGet() != "":
+		httpMethod = "GET"
+		pathTemplate = opts.GetGet()
+
+	case opts.GetPut() != "":
+		httpMethod = "PUT"
+		pathTemplate = opts.GetPut()
+
+	case opts.GetPost() != "":
+		httpMethod = "POST"
+		pathTemplate = opts.GetPost()
+
+	case opts.GetDelete() != "":
+		httpMethod = "DELETE"
+		pathTemplate = opts.GetDelete()
+
+	case opts.GetPatch() != "":
+		httpMethod = "PATCH"
+		pathTemplate = opts.GetPatch()
+
+	case opts.GetCustom() != nil:
+		custom := opts.GetCustom()
+		httpMethod = custom.Kind
+		pathTemplate = custom.Path
+
+	default:
+		return "", ""
+	}
+
+	return httpMethod, pathTemplate
 }
