@@ -436,3 +436,7 @@ func ExtractHttpMethod(opts *options.HttpRule) (method string, path string) {
 
 	return httpMethod, pathTemplate
 }
+
+func P(format string, a ...interface{}) *jen.Statement {
+	return jen.Id(strings.TrimSpace(fmt.Sprintf(format, a...)))
+}
