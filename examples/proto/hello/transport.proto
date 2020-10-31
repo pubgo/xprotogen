@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package hello;
+
+service Transport {
+	rpc TestStream(stream Message) returns (stream Message) {}
+	rpc TestStream1(stream Message) returns (Message) {}
+}
+
+message Message {
+	map<string, string> header = 1;
+	bytes body = 2;
+}

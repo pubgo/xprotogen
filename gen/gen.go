@@ -1,15 +1,19 @@
-package xprotogen
+package gen
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"go/format"
 	"io/ioutil"
 	logger "log"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
 
-	"github.com/dave/jennifer/jen"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/pubgo/xerror"
@@ -18,7 +22,7 @@ import (
 	plugin "google.golang.org/protobuf/types/pluginpb"
 )
 
-var log = logger.New(os.Stderr, "", logger.LstdFlags|logger.Lshortfile)
+var log = logger.New(os.Stderr, "xprotogen: ", logger.LstdFlags|logger.Lshortfile)
 
 func New(name string) *protoGen {
 	p := &protoGen{name: name}
@@ -34,7 +38,8 @@ func New(name string) *protoGen {
 }
 
 type protoGen struct {
-	init                func(pkg string, fd *descriptor.FileDescriptorProto, j *jen.File) error
+	header              func(pkg string, fd *FileDescriptor) string
+	service             func(s *Service) string
 	name                string
 	request             plugin.CodeGeneratorRequest
 	response            plugin.CodeGeneratorResponse
@@ -42,32 +47,6 @@ type protoGen struct {
 }
 
 func (t *protoGen) Save() (err error) {
-	defer xerror.RespErr(&err)
-	data := xerror.PanicBytes(proto.Marshal(&t.response))
-	xerror.PanicErr(os.Stdout.Write(data))
-	return nil
-}
-
-type Service struct {
-	*descriptor.ServiceDescriptorProto
-	Name string
-	Pkg  string
-	J    *jen.File
-}
-
-func (t *Service) P(a ...interface{}) *jen.Statement {
-	return t.J.Id(fmt.Sprintln(a...))
-}
-
-func (t *Service) TypeName(mthName string) string {
-	return getTypeName(t.Pkg, mthName)
-}
-
-func (t *protoGen) Init(fn func(pkg string, fd *descriptor.FileDescriptorProto, j *jen.File) error) {
-	t.init = fn
-}
-
-func (t *protoGen) Service(fn func(s *Service)) (err error) {
 	defer xerror.RespErr(&err)
 
 	for _, name := range t.request.GetFileToGenerate() {
@@ -87,14 +66,16 @@ func (t *protoGen) Service(fn func(s *Service)) (err error) {
 		}
 
 		pkg, _ := goPackageName(fd)
-		j := jen.NewFile(pkg)
 
-		if t.init != nil {
-			xerror.Panic(t.init(pkg, fd, j))
+		var code string
+		if t.header != nil {
+			code += t.header(pkg, &FileDescriptor{FileDescriptorProto: fd}) + "\n"
 		}
 
 		for _, ss := range fd.GetService() {
-			fn(&Service{J: j, ServiceDescriptorProto: ss, Pkg: pkg, Name: CamelCase(ss.GetName())})
+			if t.service != nil {
+				code += t.service(&Service{ServiceDescriptorProto: ss, Pkg: pkg}) + "\n"
+			}
 		}
 
 		if ext := path.Ext(name); ext == ".proto" {
@@ -103,16 +84,63 @@ func (t *protoGen) Service(fn func(s *Service)) (err error) {
 
 		t.response.File = append(t.response.File, &plugin.CodeGeneratorResponse_File{
 			Name:    proto.String(name + ".pb." + t.name + ".go"),
-			Content: proto.String(j.GoString()),
+			Content: proto.String(xerror.PanicStr(formatBuffer(code))),
 		})
 	}
 
+	data := xerror.PanicBytes(proto.Marshal(&t.response))
+	xerror.PanicErr(os.Stdout.Write(data))
 	return nil
 }
 
+var rgxSyntaxError = regexp.MustCompile(`(\d+):\d+: `)
+
+// formatBuffer format go code, panic when code is invalid
+func formatBuffer(code string) (_ string, err error) {
+	defer xerror.RespErr(&err)
+
+	buf := bytes.NewBufferString(code)
+	output, err := format.Source(buf.Bytes())
+	if err == nil {
+		return string(output), nil
+	}
+
+	matches := rgxSyntaxError.FindStringSubmatch(err.Error())
+	if matches == nil {
+		return "", xerror.New("failed to format template")
+	}
+
+	lineNum, _ := strconv.Atoi(matches[1])
+	scanner := bufio.NewScanner(buf)
+	errBuf := &bytes.Buffer{}
+	line := 1
+	for ; scanner.Scan(); line++ {
+		if delta := line - lineNum; delta < -5 || delta > 5 {
+			continue
+		}
+
+		if line == lineNum {
+			errBuf.WriteString(">>>> ")
+		} else {
+			fmt.Fprintf(errBuf, "% 4d ", line)
+		}
+		errBuf.Write(scanner.Bytes())
+		errBuf.WriteByte('\n')
+	}
+
+	return "", xerror.New("failed to format template\n\n" + string(errBuf.Bytes()))
+}
+
+func (t *protoGen) Header(fn func(pkg string, fd *FileDescriptor) string) {
+	t.header = fn
+}
+
+func (t *protoGen) Service(fn func(s *Service) string) {
+	t.service = fn
+}
+
 func (t *protoGen) Parameter(fn func(key, value string)) {
-	parameter := t.request.GetParameter()
-	for _, param := range strings.Split(parameter, ",") {
+	for _, param := range strings.Split(t.request.GetParameter(), ",") {
 		var value string
 		if i := strings.Index(param, "="); i >= 0 {
 			value = strings.TrimSpace(param[i+1:])
@@ -137,6 +165,54 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 
 		fn(param, value)
 	}
+}
+
+type Method struct {
+	ss *Service
+	*descriptor.MethodDescriptorProto
+}
+
+func (t *Method) GetName() string {
+	return camelCase(t.MethodDescriptorProto.GetName())
+}
+
+func (t *Method) GetInputType() string {
+	return getTypeName(t.ss.Pkg, t.MethodDescriptorProto.GetInputType())
+}
+
+func (t *Method) GetOutputType() string {
+	return getTypeName(t.ss.Pkg, t.MethodDescriptorProto.GetOutputType())
+}
+
+func (t *Method) GetHttpMethod() (method string, path string) {
+	hr, err := ExtractAPIOptions(t.MethodDescriptorProto)
+	if err != nil || hr == nil {
+		hr = DefaultAPIOptions(t.ss.Pkg, t.ss.GetName(), t.GetName())
+	}
+	return ExtractHttpMethod(hr)
+}
+
+type FileDescriptor struct {
+	*descriptor.FileDescriptorProto
+}
+
+type Service struct {
+	*descriptor.ServiceDescriptorProto
+	Pkg string
+}
+
+func (t *Service) GetMethod() (methods []Method) {
+	for _, mth := range t.ServiceDescriptorProto.GetMethod() {
+		methods = append(methods, Method{
+			ss:                    t,
+			MethodDescriptorProto: mth,
+		})
+	}
+	return methods
+}
+
+func (t *Service) GetName() string {
+	return getTypeName(t.Pkg, t.ServiceDescriptorProto.GetName())
 }
 
 // baseName returns the last path element of the name, with the last dotted suffix removed.
@@ -265,7 +341,7 @@ func isASCIIDigit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
-// CamelCase returns the CamelCased name.
+// camelCase returns the CamelCased name.
 // If there is an interior underscore followed by a lower case letter,
 // drop the underscore and convert the letter to upper case.
 // There is a remote possibility of this rewrite causing a name collision,
@@ -273,7 +349,7 @@ func isASCIIDigit(c byte) bool {
 // C++ generator lowercases names, it's extremely unlikely to have two fields
 // with different capitalizations.
 // In short, _my_field_name_2 becomes XMyFieldName_2.
-func CamelCase(s string) string {
+func camelCase(s string) string {
 	if s == "" {
 		return ""
 	}
@@ -312,13 +388,6 @@ func CamelCase(s string) string {
 	return string(t)
 }
 
-// CamelCaseSlice is like CamelCase, but the argument is a slice of strings to
-// be joined with "_".
-func CamelCaseSlice(elem []string) string { return CamelCase(strings.Join(elem, "_")) }
-
-// dottedSlice turns a sliced name into a dotted name.
-func dottedSlice(elem []string) string { return strings.Join(elem, ".") }
-
 // Is this field optional?
 func isOptional(field *descriptor.FieldDescriptorProto) bool {
 	return field.Label != nil && *field.Label == descriptor.FieldDescriptorProto_LABEL_OPTIONAL
@@ -334,46 +403,21 @@ func isRepeated(field *descriptor.FieldDescriptorProto) bool {
 	return field.Label != nil && *field.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED
 }
 
-// Is this field a scalar numeric type?
-func isScalar(field *descriptor.FieldDescriptorProto) bool {
-	if field.Type == nil {
-		return false
-	}
-	switch *field.Type {
-	case descriptor.FieldDescriptorProto_TYPE_DOUBLE,
-		descriptor.FieldDescriptorProto_TYPE_FLOAT,
-		descriptor.FieldDescriptorProto_TYPE_INT64,
-		descriptor.FieldDescriptorProto_TYPE_UINT64,
-		descriptor.FieldDescriptorProto_TYPE_INT32,
-		descriptor.FieldDescriptorProto_TYPE_FIXED64,
-		descriptor.FieldDescriptorProto_TYPE_FIXED32,
-		descriptor.FieldDescriptorProto_TYPE_BOOL,
-		descriptor.FieldDescriptorProto_TYPE_UINT32,
-		descriptor.FieldDescriptorProto_TYPE_ENUM,
-		descriptor.FieldDescriptorProto_TYPE_SFIXED32,
-		descriptor.FieldDescriptorProto_TYPE_SFIXED64,
-		descriptor.FieldDescriptorProto_TYPE_SINT32,
-		descriptor.FieldDescriptorProto_TYPE_SINT64:
-		return true
-	default:
-		return false
-	}
-}
-
-func DefaultAPIOptions(pkg string, srv string, mth string) (*options.HttpRule, error) {
-	// This generates an HttpRule that matches the gRPC mapping to HTTP/2 described in
-	// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
-	// i.e.:
-	//   * method is POST
-	//   * path is "/<service name>/<method name>"
-	//   * body should contain the serialized request message
-	rule := &options.HttpRule{
+// DefaultAPIOptions
+// This generates an HttpRule that matches the gRPC mapping to HTTP/2 described in
+// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
+// i.e.:
+//   * method is POST
+//   * path is "/<service name>/<method name>"
+//   * body should contain the serialized request message
+func DefaultAPIOptions(pkg string, srv string, mth string) *options.HttpRule {
+	log.Println(pkg, srv, mth)
+	return &options.HttpRule{
 		Pattern: &options.HttpRule_Post{
-			Post: fmt.Sprintf("/%s.%s/%s", pkg, srv, mth),
+			Post: camel2Case(fmt.Sprintf("/%s_%s/%s", camel2Case(pkg), camel2Case(srv), camel2Case(mth))),
 		},
 		Body: "*",
 	}
-	return rule, nil
 }
 
 func ExtractAPIOptions(mth *descriptorpb.MethodDescriptorProto) (*options.HttpRule, error) {
@@ -437,6 +481,39 @@ func ExtractHttpMethod(opts *options.HttpRule) (method string, path string) {
 	return httpMethod, pathTemplate
 }
 
-func P(format string, a ...interface{}) *jen.Statement {
-	return jen.Id(strings.TrimSpace(fmt.Sprintf(format, a...)))
+type M map[string]interface{}
+
+func UnExport(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	return strings.ToLower(s[:1]) + s[1:]
+}
+
+// camel2Case
+// 驼峰式写法转为下划线写法
+func camel2Case(name string) string {
+	name = trim(name)
+	buf := new(bytes.Buffer)
+	for i, r := range name {
+		if !unicode.IsUpper(r) {
+			buf.WriteRune(r)
+			continue
+		}
+
+		if i != 0 {
+			buf.WriteRune('_')
+		}
+		buf.WriteRune(unicode.ToLower(r))
+	}
+	return strings.ReplaceAll(strings.ReplaceAll(buf.String(), ".", "_"), "__", "_")
+}
+
+func trim(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.Trim(s, ".")
+	s = strings.Trim(s, "-")
+	s = strings.Trim(s, "_")
+	s = strings.Trim(s, "/")
+	return s
 }
