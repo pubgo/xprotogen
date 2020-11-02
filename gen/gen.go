@@ -173,7 +173,7 @@ type Method struct {
 }
 
 func (t *Method) GetName() string {
-	return camelCase(t.MethodDescriptorProto.GetName())
+	return CamelCase(t.MethodDescriptorProto.GetName())
 }
 
 func (t *Method) GetInputType() string {
@@ -189,6 +189,7 @@ func (t *Method) GetHttpMethod() (method string, path string) {
 	if err != nil || hr == nil {
 		hr = DefaultAPIOptions(t.ss.Pkg, t.ss.GetName(), t.GetName())
 	}
+	t.GetServerStreaming()
 	return ExtractHttpMethod(hr)
 }
 
@@ -201,9 +202,9 @@ type Service struct {
 	Pkg string
 }
 
-func (t *Service) GetMethod() (methods []Method) {
+func (t *Service) GetMethod() (methods []*Method) {
 	for _, mth := range t.ServiceDescriptorProto.GetMethod() {
-		methods = append(methods, Method{
+		methods = append(methods, &Method{
 			ss:                    t,
 			MethodDescriptorProto: mth,
 		})
@@ -341,7 +342,7 @@ func isASCIIDigit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
-// camelCase returns the CamelCased name.
+// CamelCase returns the CamelCased name.
 // If there is an interior underscore followed by a lower case letter,
 // drop the underscore and convert the letter to upper case.
 // There is a remote possibility of this rewrite causing a name collision,
@@ -349,7 +350,7 @@ func isASCIIDigit(c byte) bool {
 // C++ generator lowercases names, it's extremely unlikely to have two fields
 // with different capitalizations.
 // In short, _my_field_name_2 becomes XMyFieldName_2.
-func camelCase(s string) string {
+func CamelCase(s string) string {
 	if s == "" {
 		return ""
 	}
