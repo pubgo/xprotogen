@@ -37,16 +37,11 @@ proto: clear gen
    --micro_out=. \
 	examples/proto/login/*
 
+.PHONY: clear
 clear:
 	rm -rf examples/proto/*.go
 	rm -rf examples/proto/**/*.go
 
-gen: tpl
+.PHONY: gen
+gen:
 	cd examples/protoc-gen-micro && go install .
-
-.PHONY: tpl
-tpl:
-	./main gen examples/protoc-gen-micro
-
-w:
-	./main gen examples/protoc-gen-micro -w
