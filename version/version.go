@@ -1,19 +1,4 @@
 package version
 
-import (
-	"runtime"
-)
-
-var BuildTime = ""
-var Version = ""
-var GoVersion = runtime.Version()
-var GoPath = ""
-var GoROOT = ""
-var CommitID = ""
-var Project = ""
-
-func init() {
-	if Version == "" {
-		Version = "v0.0.1"
-	}
-}
+const BuildTime = "2020-11-04 14:50:06"
+const Version = "v0.0.1"

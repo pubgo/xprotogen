@@ -8,10 +8,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/pubgo/xerror"
+
 	"github.com/dave/jennifer/jen"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/pubgo/xerror"
 	plugin "google.golang.org/protobuf/types/pluginpb"
 )
 
@@ -133,8 +134,8 @@ func (t M) Set(k string, v interface{}) {
 	t[k] = v
 }
 
-func (t M) P(template string, args ...interface{}) string {
-	return fmt.Sprintf(template1(template, t), args...)
+func (t M) P(template string) string {
+	return template1(template, t)
 }
 
 type FileDescriptor struct {
