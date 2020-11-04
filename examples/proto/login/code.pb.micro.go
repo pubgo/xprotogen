@@ -59,7 +59,9 @@ func (c *CodeService) SendCode(ctx context.Context, in *SendCodeRequest, opts ..
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Code_SendCodeService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -99,7 +101,9 @@ func (c *CodeService) Verify(ctx context.Context, in *VerifyRequest, opts ...cli
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Code_VerifyService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -139,7 +143,9 @@ func (c *CodeService) IsCheckImageCode(ctx context.Context, in *IsCheckImageCode
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Code_IsCheckImageCodeService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -179,7 +185,9 @@ func (c *CodeService) VerifyImageCode(ctx context.Context, in *VerifyImageCodeRe
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Code_VerifyImageCodeService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -219,7 +227,9 @@ func (c *CodeService) GetSendStatus(ctx context.Context, in *GetSendStatusReques
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Code_GetSendStatusService interface {
 	Context() context.Context
 	SendMsg(interface{}) error

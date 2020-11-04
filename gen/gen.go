@@ -52,8 +52,8 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 		}
 
 		// case "import_prefix", "import_path":
-		switch param {
-		case "paths":
+		switch {
+		case param == "paths":
 			if value == "source_relative" {
 				t.PathsSourceRelative = true
 			} else if value == "import" {
@@ -61,12 +61,11 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 			} else {
 				log.Fatalf(`unknown path type %q: want "import" or "source_relative"`, value)
 			}
+		case param[0] == 'M':
+			t.ImportMap[param[1:]] = value
 		default:
-			if len(param) > 0 && param[0] == 'M' {
-				t.ImportMap[param[1:]] = value
-			}
+			data[param] = value
 		}
-		data[param] = value
 	}
 
 	for k, v := range data {
@@ -78,7 +77,7 @@ func (t *protoGen) Init(init func(fd *FileDescriptor)) (err error) {
 	defer xerror.RespErr(&err)
 
 	if init == nil {
-		return xerror.New("[init] is nil")
+		return xerror.New("[init] should not be nil")
 	}
 
 	for _, name := range t.request.GetFileToGenerate() {
@@ -100,15 +99,10 @@ func (t *protoGen) Init(init func(fd *FileDescriptor)) (err error) {
 		pkg, _ := goPackageName(fd)
 		var j = jen.NewFile(pkg)
 
-		var data = make(M)
-		data.Set("pkg", pkg)
-		data.Set("fd", fd)
-
 		init(&FileDescriptor{
-			pkg:                 pkg,
 			FileDescriptorProto: fd,
-			J:                   j,
-			M:                   data})
+			Jen:                 j,
+			M:                   M{"pkg": pkg, "fd": fd}})
 
 		if ext := path.Ext(name); ext == ".proto" {
 			name = name[:len(name)-len(ext)]
@@ -127,22 +121,66 @@ func (t *protoGen) Init(init func(fd *FileDescriptor)) (err error) {
 
 type M map[string]interface{}
 
+func (t M) Clone() M {
+	var data = make(M)
+	for k, v := range t {
+		data[k] = v
+	}
+	return data
+}
+
 func (t M) Set(k string, v interface{}) {
 	t[k] = v
 }
 
-func (t M) Fmt(template string, args ...interface{}) string {
-	return fmt.Sprintf(Template(template, t), args...)
+func (t M) P(template string, args ...interface{}) string {
+	return fmt.Sprintf(template1(template, t), args...)
 }
 
-func (t M) P(template string, args ...interface{}) *jen.Statement {
-	return jen.Id(t.Fmt(template, args...))
+type FileDescriptor struct {
+	M
+	*descriptor.FileDescriptorProto
+	Jen *jen.File
+}
+
+func (t *FileDescriptor) GetService() []*Service {
+	var ss []*Service
+	for _, s := range t.FileDescriptorProto.GetService() {
+		s1 := &Service{ServiceDescriptorProto: s, M: t.M.Clone(), Jen: t.Jen}
+		s1.Set("srv", s1.GetName())
+		s1.Set("srv1", UnExport(s1.GetName()))
+		ss = append(ss, s1)
+	}
+	return ss
+}
+
+type Service struct {
+	*descriptor.ServiceDescriptorProto
+	M
+	Jen *jen.File
+}
+
+func (t *Service) GetMethod() (methods []*Method) {
+	for _, mth := range t.ServiceDescriptorProto.GetMethod() {
+		m := &Method{M: t.M.Clone(), MethodDescriptorProto: mth, Jen: t.Jen}
+		m.Set("mthName", m.GetName())
+		m.Set("inType", m.GetInputType())
+		m.Set("outType", m.GetOutputType())
+		m.Set("cs", m.GetClientStreaming())
+		m.Set("ss", m.GetServerStreaming())
+		methods = append(methods, m)
+	}
+	return methods
+}
+
+func (t *Service) GetName() string {
+	return CamelCase(getTypeName(fmt.Sprintf("%s", t.M["pkg"]), t.ServiceDescriptorProto.GetName()))
 }
 
 type Method struct {
 	*descriptor.MethodDescriptorProto
 	M
-	ss *Service
+	Jen *jen.File
 }
 
 func (t *Method) GetName() string {
@@ -150,63 +188,17 @@ func (t *Method) GetName() string {
 }
 
 func (t *Method) GetInputType() string {
-	return getTypeName(t.ss.Pkg, t.MethodDescriptorProto.GetInputType())
+	return getTypeName(fmt.Sprintf("%s", t.M["pkg"]), t.MethodDescriptorProto.GetInputType())
 }
 
 func (t *Method) GetOutputType() string {
-	return getTypeName(t.ss.Pkg, t.MethodDescriptorProto.GetOutputType())
+	return getTypeName(fmt.Sprintf("%s", t.M["pkg"]), t.MethodDescriptorProto.GetOutputType())
 }
 
 func (t *Method) GetHttpMethod() (method string, path string) {
 	hr, err := ExtractAPIOptions(t.MethodDescriptorProto)
 	if err != nil || hr == nil {
-		hr = DefaultAPIOptions(t.ss.Pkg, t.ss.GetName(), t.GetName())
+		hr = DefaultAPIOptions(fmt.Sprintf("%s", t.M["pkg"]), fmt.Sprintf("%s", t.M["srv"]), t.GetName())
 	}
-	t.GetServerStreaming()
 	return ExtractHttpMethod(hr)
-}
-
-type FileDescriptor struct {
-	M
-	*descriptor.FileDescriptorProto
-	J   *jen.File
-	pkg string
-}
-
-func (t *FileDescriptor) Pkg() string {
-	return t.pkg
-}
-func (t *FileDescriptor) GetService() []*Service {
-	var ss []*Service
-	for _, s := range t.FileDescriptorProto.GetService() {
-		ss = append(ss, &Service{
-			M:                      t.M,
-			ServiceDescriptorProto: s,
-			Pkg:                    t.pkg,
-			J:                      t.J,
-		})
-	}
-	return ss
-}
-
-type Service struct {
-	M
-	*descriptor.ServiceDescriptorProto
-	Pkg string
-	J   *jen.File
-}
-
-func (t *Service) GetMethod() (methods []*Method) {
-	for _, mth := range t.ServiceDescriptorProto.GetMethod() {
-		methods = append(methods, &Method{
-			M:                     t.M,
-			ss:                    t,
-			MethodDescriptorProto: mth,
-		})
-	}
-	return methods
-}
-
-func (t *Service) GetName() string {
-	return getTypeName(t.Pkg, t.ServiceDescriptorProto.GetName())
 }

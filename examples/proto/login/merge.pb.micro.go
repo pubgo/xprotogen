@@ -59,7 +59,9 @@ func (c *MergeService) Telephone(ctx context.Context, in *TelephoneRequest, opts
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Merge_TelephoneService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -99,7 +101,9 @@ func (c *MergeService) TelephoneCheck(ctx context.Context, in *TelephoneRequest,
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Merge_TelephoneCheckService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -139,7 +143,9 @@ func (c *MergeService) WeChat(ctx context.Context, in *WeChatRequest, opts ...cl
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Merge_WeChatService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -179,7 +185,9 @@ func (c *MergeService) WeChatCheck(ctx context.Context, in *WeChatRequest, opts 
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Merge_WeChatCheckService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -219,7 +227,9 @@ func (c *MergeService) WeChatUnMerge(ctx context.Context, in *WeChatUnMergeReque
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Merge_WeChatUnMergeService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
