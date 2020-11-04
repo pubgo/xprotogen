@@ -271,6 +271,10 @@ func RegisterTransportHandler(s server.Server, hdlr TransportHandler, opts ...se
 		transport
 	}
 	h := &transportHandler{hdlr}
+	opts = append(opts, server.EndpointMetadata("TestStream", map[string]string{"POST": "hello_transport/test_stream"}))
+	opts = append(opts, server.EndpointMetadata("TestStream1", map[string]string{"POST": "hello_transport/test_stream1"}))
+	opts = append(opts, server.EndpointMetadata("TestStream2", map[string]string{"POST": "hello_transport/test_stream2"}))
+	opts = append(opts, server.EndpointMetadata("TestStream3", map[string]string{"POST": "hello_transport/test_stream3"}))
 	return s.Handle(s.NewHandler(&Transport{h}, opts...))
 }
 
@@ -453,8 +457,3 @@ func (x *transportTestStream3Stream) SendMsg(m interface{}) error {
 func (x *transportTestStream3Stream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
-
-// POST hello_transport/test_stream
-// POST hello_transport/test_stream1
-// POST hello_transport/test_stream2
-// POST hello_transport/test_stream3

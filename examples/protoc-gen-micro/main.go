@@ -320,6 +320,7 @@ func service(ss *gen.Service) {
 					group.Id(m.P("{{.mthName}}(ctx context.Context,in *{{.inType}},out *{{.outType}}) error"))
 					continue
 				}
+
 				group.Id(m.P("{{.mthName}}(ctx context.Context,stream server.Stream)error"))
 			}
 		})
@@ -328,8 +329,13 @@ func service(ss *gen.Service) {
 		type {{.srv}} struct {
             {{.srv1}}
         }
-        h := &{{.srv1}}Handler{hdlr}
-        return s.Handle(s.NewHandler(&{{.srv}}{h}, opts...))`))
+        h := &{{.srv1}}Handler{hdlr}`))
+
+		for _, m := range ss.GetMethod() {
+			group.Id(m.P(`opts = append(opts, server.EndpointMetadata("{{.mthName}}", map[string]string{"{{.http_method}}": "{{.http_path}}"}))`))
+		}
+
+		group.Id(ss.P(`return s.Handle(s.NewHandler(&{{.srv}}{h}, opts...))`))
 	})
 
 	j.Id(ss.P(`
@@ -339,12 +345,6 @@ func service(ss *gen.Service) {
 
 	for _, m := range ss.GetMethod() {
 		j.Add(serviceServer(m))
-		j.List()
-	}
-
-	for _, m := range ss.GetMethod() {
-		method, path := m.GetHttpMethod()
-		j.Comment("//").Id(method).Id(path)
-		j.List()
+		j.Line()
 	}
 }

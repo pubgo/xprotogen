@@ -282,6 +282,11 @@ func RegisterMergeHandler(s server.Server, hdlr MergeHandler, opts ...server.Han
 		merge
 	}
 	h := &mergeHandler{hdlr}
+	opts = append(opts, server.EndpointMetadata("Telephone", map[string]string{"POST": "/user/merge/telephone"}))
+	opts = append(opts, server.EndpointMetadata("TelephoneCheck", map[string]string{"POST": "/user/merge/telephone-check"}))
+	opts = append(opts, server.EndpointMetadata("WeChat", map[string]string{"POST": "/user/merge/we-chat"}))
+	opts = append(opts, server.EndpointMetadata("WeChatCheck", map[string]string{"POST": "/user/merge/we-chat-check"}))
+	opts = append(opts, server.EndpointMetadata("WeChatUnMerge", map[string]string{"POST": "/user/merge/we-chat-un-merge"}))
 	return s.Handle(s.NewHandler(&Merge{h}, opts...))
 }
 
@@ -493,9 +498,3 @@ func (x *mergeWeChatUnMergeStream) SendMsg(m interface{}) error {
 func (x *mergeWeChatUnMergeStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
-
-// POST /user/merge/telephone
-// POST /user/merge/telephone-check
-// POST /user/merge/we-chat
-// POST /user/merge/we-chat-check
-// POST /user/merge/we-chat-un-merge

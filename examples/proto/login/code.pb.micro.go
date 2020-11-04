@@ -282,6 +282,11 @@ func RegisterCodeHandler(s server.Server, hdlr CodeHandler, opts ...server.Handl
 		code
 	}
 	h := &codeHandler{hdlr}
+	opts = append(opts, server.EndpointMetadata("SendCode", map[string]string{"POST": "/user/code/send-code"}))
+	opts = append(opts, server.EndpointMetadata("Verify", map[string]string{"POST": "/user/code/verify"}))
+	opts = append(opts, server.EndpointMetadata("IsCheckImageCode", map[string]string{"POST": "/user/code/is-check-image-code"}))
+	opts = append(opts, server.EndpointMetadata("VerifyImageCode", map[string]string{"POST": "/user/code/verify-image-code"}))
+	opts = append(opts, server.EndpointMetadata("GetSendStatus", map[string]string{"POST": "/user/code/get-send-status"}))
 	return s.Handle(s.NewHandler(&Code{h}, opts...))
 }
 
@@ -493,9 +498,3 @@ func (x *codeGetSendStatusStream) SendMsg(m interface{}) error {
 func (x *codeGetSendStatusStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
-
-// POST /user/code/send-code
-// POST /user/code/verify
-// POST /user/code/is-check-image-code
-// POST /user/code/verify-image-code
-// POST /user/code/get-send-status

@@ -169,6 +169,10 @@ func (t *Service) GetMethod() (methods []*Method) {
 		m.Set("outType", m.GetOutputType())
 		m.Set("cs", m.GetClientStreaming())
 		m.Set("ss", m.GetServerStreaming())
+
+		httpMethod, httpPath := m.GetHttpMethod()
+		m.Set("http_method", httpMethod)
+		m.Set("http_path", httpPath)
 		methods = append(methods, m)
 	}
 	return methods

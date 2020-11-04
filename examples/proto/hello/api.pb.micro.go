@@ -147,6 +147,8 @@ func RegisterTestApiHandler(s server.Server, hdlr TestApiHandler, opts ...server
 		testApi
 	}
 	h := &testApiHandler{hdlr}
+	opts = append(opts, server.EndpointMetadata("Version", map[string]string{"POST": "hello_test_api/version"}))
+	opts = append(opts, server.EndpointMetadata("VersionTest", map[string]string{"POST": "/v1/example/versiontest"}))
 	return s.Handle(s.NewHandler(&TestApi{h}, opts...))
 }
 
@@ -236,8 +238,6 @@ func (x *testApiVersionTestStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-// POST hello_test_api/version
-// POST /v1/example/versiontest
 // Client API for TestApiV2 service
 type TestApiV2Service interface {
 	Version(ctx context.Context, in *TestReq, opts ...client.CallOption) (*TestApiOutput, error)
@@ -355,6 +355,8 @@ func RegisterTestApiV2Handler(s server.Server, hdlr TestApiV2Handler, opts ...se
 		testApiV2
 	}
 	h := &testApiV2Handler{hdlr}
+	opts = append(opts, server.EndpointMetadata("Version", map[string]string{"POST": "/v2/example/version"}))
+	opts = append(opts, server.EndpointMetadata("VersionTest", map[string]string{"POST": "/v2/example/versiontest"}))
 	return s.Handle(s.NewHandler(&TestApiV2{h}, opts...))
 }
 
@@ -443,6 +445,3 @@ func (x *testApiV2VersionTestStream) SendMsg(m interface{}) error {
 func (x *testApiV2VersionTestStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
-
-// POST /v2/example/version
-// POST /v2/example/versiontest

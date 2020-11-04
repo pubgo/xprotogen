@@ -327,6 +327,12 @@ func RegisterBindTelephoneHandler(s server.Server, hdlr BindTelephoneHandler, op
 		bindTelephone
 	}
 	h := &bindTelephoneHandler{hdlr}
+	opts = append(opts, server.EndpointMetadata("Check", map[string]string{"POST": "/user/bind-telephone/check"}))
+	opts = append(opts, server.EndpointMetadata("BindVerify", map[string]string{"POST": "/user/bind-telephone/bind-verify"}))
+	opts = append(opts, server.EndpointMetadata("BindChange", map[string]string{"POST": "/user/bind-telephone/bind-change"}))
+	opts = append(opts, server.EndpointMetadata("AutomaticBind", map[string]string{"POST": "/user/bind-telephone/automatic-bind"}))
+	opts = append(opts, server.EndpointMetadata("BindPhoneParse", map[string]string{"POST": "/user/bind-telephone/bind-phone-parse"}))
+	opts = append(opts, server.EndpointMetadata("BindPhoneParseByOneClick", map[string]string{"POST": "/user/bind-telephone/bind-phone-parse-by-one-click"}))
 	return s.Handle(s.NewHandler(&BindTelephone{h}, opts...))
 }
 
@@ -579,10 +585,3 @@ func (x *bindTelephoneBindPhoneParseByOneClickStream) SendMsg(m interface{}) err
 func (x *bindTelephoneBindPhoneParseByOneClickStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
-
-// POST /user/bind-telephone/check
-// POST /user/bind-telephone/bind-verify
-// POST /user/bind-telephone/bind-change
-// POST /user/bind-telephone/automatic-bind
-// POST /user/bind-telephone/bind-phone-parse
-// POST /user/bind-telephone/bind-phone-parse-by-one-click

@@ -147,6 +147,8 @@ func RegisterLoginHandler(s server.Server, hdlr LoginHandler, opts ...server.Han
 		login
 	}
 	h := &loginHandler{hdlr}
+	opts = append(opts, server.EndpointMetadata("Login", map[string]string{"POST": "/user/login/login"}))
+	opts = append(opts, server.EndpointMetadata("Authenticate", map[string]string{"POST": "/user/login/authenticate"}))
 	return s.Handle(s.NewHandler(&Login{h}, opts...))
 }
 
@@ -235,6 +237,3 @@ func (x *loginAuthenticateStream) SendMsg(m interface{}) error {
 func (x *loginAuthenticateStream) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
-
-// POST /user/login/login
-// POST /user/login/authenticate
