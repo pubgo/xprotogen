@@ -60,7 +60,9 @@ func (c *BindTelephoneService) Check(ctx context.Context, in *CheckRequest, opts
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type BindTelephone_CheckService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -100,7 +102,9 @@ func (c *BindTelephoneService) BindVerify(ctx context.Context, in *BindVerifyReq
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type BindTelephone_BindVerifyService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -140,7 +144,9 @@ func (c *BindTelephoneService) BindChange(ctx context.Context, in *BindChangeReq
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type BindTelephone_BindChangeService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -180,7 +186,9 @@ func (c *BindTelephoneService) AutomaticBind(ctx context.Context, in *AutomaticB
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type BindTelephone_AutomaticBindService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -220,7 +228,9 @@ func (c *BindTelephoneService) BindPhoneParse(ctx context.Context, in *BindPhone
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type BindTelephone_BindPhoneParseService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -260,7 +270,9 @@ func (c *BindTelephoneService) BindPhoneParseByOneClick(ctx context.Context, in 
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type BindTelephone_BindPhoneParseByOneClickService interface {
 	Context() context.Context
 	SendMsg(interface{}) error

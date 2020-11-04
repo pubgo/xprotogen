@@ -57,7 +57,9 @@ func (c *TransportService) TestStream(ctx context.Context, opts ...client.CallOp
 		return nil, err
 	}
 	return Transport.TestStream{stream}, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Transport_TestStreamService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -113,7 +115,9 @@ func (c *TransportService) TestStream1(ctx context.Context, opts ...client.CallO
 		return nil, err
 	}
 	return Transport.TestStream1{stream}, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Transport_TestStream1Service interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -161,7 +165,9 @@ func (c *TransportService) TestStream2(ctx context.Context, in *Message, opts ..
 		return nil, err
 	}
 	return Transport.TestStream2{stream}, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Transport_TestStream2Service interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -212,7 +218,9 @@ func (c *TransportService) TestStream3(ctx context.Context, in *Message, opts ..
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Transport_TestStream3Service interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -245,9 +253,9 @@ func (x *TransportTestStream3) Send(m *Message) error {
 
 // Server API for Transport service
 type TransportHandler interface {
-	TestStream(context.Context, Transport_TestStream3Stream) error
-	TestStream1(context.Context, Transport_TestStream3Stream) error
-	TestStream2(context.Context, *Message, Transport_TestStream3Stream) error
+	TestStream(context.Context, Transport_TestStreamStream) error
+	TestStream1(context.Context, Transport_TestStream1Stream) error
+	TestStream2(context.Context, *Message, Transport_TestStream2Stream) error
 	TestStream3(context.Context, *Message, *Message) error
 }
 

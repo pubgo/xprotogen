@@ -56,7 +56,9 @@ func (c *TestApiService) Version(ctx context.Context, in *TestReq, opts ...clien
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type TestApi_VersionService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -96,7 +98,9 @@ func (c *TestApiService) VersionTest(ctx context.Context, in *TestReq, opts ...c
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type TestApi_VersionTestService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -260,7 +264,9 @@ func (c *TestApiV2Service) Version(ctx context.Context, in *TestReq, opts ...cli
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type TestApiV2_VersionService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -300,7 +306,9 @@ func (c *TestApiV2Service) VersionTest(ctx context.Context, in *TestReq, opts ..
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type TestApiV2_VersionTestService interface {
 	Context() context.Context
 	SendMsg(interface{}) error

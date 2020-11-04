@@ -347,7 +347,7 @@ func trim(s string) string {
 	return s
 }
 
-func Template(tpl string, m M) string {
+func template1(tpl string, m M) string {
 	t, err := template.New("main").Parse(tpl)
 	xerror.PanicF(err, tpl)
 

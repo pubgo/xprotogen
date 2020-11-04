@@ -56,7 +56,9 @@ func (c *LoginService) Login(ctx context.Context, in *LoginRequest, opts ...clie
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Login_LoginService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
@@ -96,7 +98,9 @@ func (c *LoginService) Authenticate(ctx context.Context, in *AuthenticateRequest
 		return nil, err
 	}
 	return out, nil
-} // Stream auxiliary types and methods.
+}
+
+// Stream auxiliary types and methods.
 type Login_AuthenticateService interface {
 	Context() context.Context
 	SendMsg(interface{}) error
