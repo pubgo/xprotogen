@@ -148,7 +148,7 @@ func RegisterTestApiHandler(s server.Server, hdlr TestApiHandler, opts ...server
 	}
 	h := &testApiHandler{hdlr}
 	opts = append(opts, server.EndpointMetadata("Version", map[string]string{"POST": "hello_test_api/version"}))
-	opts = append(opts, server.EndpointMetadata("VersionTest", map[string]string{"POST": "/v1/example/versiontest"}))
+	opts = append(opts, server.EndpointMetadata("VersionTest", map[string]string{"test": "/v1/example/versiontest"}))
 	return s.Handle(s.NewHandler(&TestApi{h}, opts...))
 }
 
