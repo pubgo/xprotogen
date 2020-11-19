@@ -8,10 +8,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/pubgo/xerror"
+
 	"github.com/dave/jennifer/jen"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
-	"github.com/pubgo/xerror"
 	plugin "google.golang.org/protobuf/types/pluginpb"
 )
 
@@ -73,7 +74,7 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 	}
 }
 
-func (t *protoGen) Init(init func(fd *FileDescriptor)) (err error) {
+func (t *protoGen) Gen(init func(fd *FileDescriptor)) (err error) {
 	defer xerror.RespErr(&err)
 
 	if init == nil {
@@ -133,8 +134,8 @@ func (t M) Set(k string, v interface{}) {
 	t[k] = v
 }
 
-func (t M) P(template string, args ...interface{}) string {
-	return fmt.Sprintf(template1(template, t), args...)
+func (t M) P(template string) string {
+	return template1(template, t)
 }
 
 type FileDescriptor struct {
@@ -168,6 +169,10 @@ func (t *Service) GetMethod() (methods []*Method) {
 		m.Set("outType", m.GetOutputType())
 		m.Set("cs", m.GetClientStreaming())
 		m.Set("ss", m.GetServerStreaming())
+
+		httpMethod, httpPath := m.GetHttpMethod()
+		m.Set("http_method", httpMethod)
+		m.Set("http_path", httpPath)
 		methods = append(methods, m)
 	}
 	return methods

@@ -1,12 +1,8 @@
 package gen
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
-	"go/format"
-	"regexp"
-	"strconv"
 	"strings"
 	"text/template"
 	"unicode"
@@ -18,45 +14,8 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-var rgxSyntaxError = regexp.MustCompile(`(\d+):\d+: `)
-
-// formatBuffer format go code, panic when code is invalid
-func formatBuffer(code string) (_ string, err error) {
-	defer xerror.RespErr(&err)
-
-	buf := bytes.NewBufferString(code)
-	output, err := format.Source(buf.Bytes())
-	if err == nil {
-		return string(output), nil
-	}
-
-	matches := rgxSyntaxError.FindStringSubmatch(err.Error())
-	if matches == nil {
-		return "", xerror.New("failed to format template")
-	}
-
-	lineNum, _ := strconv.Atoi(matches[1])
-	scanner := bufio.NewScanner(buf)
-	errBuf := &bytes.Buffer{}
-	line := 1
-	for ; scanner.Scan(); line++ {
-		if delta := line - lineNum; delta < -5 || delta > 5 {
-			continue
-		}
-
-		if line == lineNum {
-			errBuf.WriteString(">>>> ")
-		} else {
-			fmt.Fprintf(errBuf, "% 4d ", line)
-		}
-		errBuf.Write(scanner.Bytes())
-		errBuf.WriteByte('\n')
-	}
-
-	return "", xerror.New("failed to format template\n\n" + string(errBuf.Bytes()))
-}
-
-// baseName returns the last path element of the name, with the last dotted suffix removed.
+// baseName
+// returns the last path element of the name, with the last dotted suffix removed.
 func baseName(name string) string {
 	// First, find the last element
 	if i := strings.LastIndex(name, "/"); i >= 0 {
@@ -69,8 +28,9 @@ func baseName(name string) string {
 	return name
 }
 
-// getGoPackage returns the file's go_package option.
-// If it containts a semicolon, only the part before it is returned.
+// getGoPackage
+// returns the file's go_package option.
+// If it contains a semicolon, only the part before it is returned.
 func getGoPackage(fd *descriptor.FileDescriptorProto) string {
 	pkg := fd.GetOptions().GetGoPackage()
 	if strings.Contains(pkg, ";") {
@@ -84,7 +44,8 @@ func getGoPackage(fd *descriptor.FileDescriptorProto) string {
 	return pkg
 }
 
-// goPackageOption interprets the file's go_package option.
+// goPackageOption
+// interprets the file's go_package option.
 // If there is no go_package, it returns ("", "", false).
 // If there's a simple name, it returns ("", Pkg, true).
 // If the option implies an import path, it returns (impPath, Pkg, true).
@@ -112,7 +73,8 @@ func goPackageOption(d *descriptor.FileDescriptorProto) (impPath, pkg string, ok
 	return
 }
 
-// goPackageName returns the Go package name to use in the
+// goPackageName
+// returns the Go package name to use in the
 // generated Go file.  The result explicit reports whether the name
 // came from an option go_package statement.  If explicit is false,
 // the name was derived from the protocol buffer's package statement
@@ -132,35 +94,12 @@ func goPackageName(d *descriptor.FileDescriptorProto) (name string, explicit boo
 	return baseName(d.GetName()), false
 }
 
-// splitMessageTypeName split a message type into (package name, type name)
-func splitMessageTypeName(name string) (string, string) {
-	if len(name) == 0 {
-		log.Fatal("Empty message type")
-	}
-	if name[0] != '.' {
-		log.Fatalf("Expect message type name to start with '.', but it is '%s'", name)
-	}
-	lastDot := strings.LastIndex(name, ".")
-	return name[1:lastDot], name[lastDot+1:]
+func getTypeName(pkg, mth string) string {
+	mth = strings.Trim(mth, ".")
+	mth = strings.TrimPrefix(mth, pkg)
+	mth = strings.Trim(mth, ".")
+	return mth
 }
-
-func getTypeName(pkgName, mthName string) string {
-	mthName = strings.Trim(mthName, ".")
-	mthName = strings.TrimLeft(mthName, pkgName)
-	mthName = strings.Trim(mthName, ".")
-	return mthName
-}
-
-func fileIsProto3(file *descriptor.FileDescriptorProto) bool {
-	return file.GetSyntax() == "proto3"
-}
-
-// A GoImportPath is the import path of a Go package. e.g., "google.golang.org/genproto/protobuf".
-type GoImportPath string
-
-func (p GoImportPath) String() string { return strconv.Quote(string(p)) }
-
-// And now lots of helper functions.
 
 // Is c an ASCII lower-case letter?
 func isASCIILower(c byte) bool {
@@ -172,7 +111,8 @@ func isASCIIDigit(c byte) bool {
 	return '0' <= c && c <= '9'
 }
 
-// CamelCase returns the CamelCased name.
+// CamelCase
+// returns the CamelCased name.
 // If there is an interior underscore followed by a lower case letter,
 // drop the underscore and convert the letter to upper case.
 // There is a remote possibility of this rewrite causing a name collision,
@@ -219,21 +159,6 @@ func CamelCase(s string) string {
 	return string(t)
 }
 
-// Is this field optional?
-func isOptional(field *descriptor.FieldDescriptorProto) bool {
-	return field.Label != nil && *field.Label == descriptor.FieldDescriptorProto_LABEL_OPTIONAL
-}
-
-// Is this field required?
-func isRequired(field *descriptor.FieldDescriptorProto) bool {
-	return field.Label != nil && *field.Label == descriptor.FieldDescriptorProto_LABEL_REQUIRED
-}
-
-// Is this field repeated?
-func isRepeated(field *descriptor.FieldDescriptorProto) bool {
-	return field.Label != nil && *field.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED
-}
-
 // DefaultAPIOptions
 // This generates an HttpRule that matches the gRPC mapping to HTTP/2 described in
 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
@@ -242,7 +167,6 @@ func isRepeated(field *descriptor.FieldDescriptorProto) bool {
 //   * path is "/<service name>/<method name>"
 //   * body should contain the serialized request message
 func DefaultAPIOptions(pkg string, srv string, mth string) *options.HttpRule {
-	log.Println(pkg, srv, mth)
 	return &options.HttpRule{
 		Pattern: &options.HttpRule_Post{
 			Post: camel2Case(fmt.Sprintf("/%s_%s/%s", camel2Case(pkg), camel2Case(srv), camel2Case(mth))),
@@ -251,16 +175,25 @@ func DefaultAPIOptions(pkg string, srv string, mth string) *options.HttpRule {
 	}
 }
 
+func DefaultHttpRule(name string) *options.HttpRule {
+	return &options.HttpRule{
+		Pattern: &options.HttpRule_Post{
+			Post: name,
+		},
+		Body: "*",
+	}
+}
+
 func ExtractAPIOptions(mth *descriptorpb.MethodDescriptorProto) (*options.HttpRule, error) {
-	if mth.Options == nil {
+	if mth.GetOptions() == nil {
 		return nil, nil
 	}
 
-	if !proto.HasExtension(mth.Options, options.E_Http) {
+	if !proto.HasExtension(mth.GetOptions(), options.E_Http) {
 		return nil, nil
 	}
 
-	ext, err := proto.GetExtension(mth.Options, options.E_Http)
+	ext, err := proto.GetExtension(mth.GetOptions(), options.E_Http)
 	if err != nil {
 		return nil, xerror.Wrap(err)
 	}
@@ -335,16 +268,11 @@ func camel2Case(name string) string {
 		}
 		buf.WriteRune(unicode.ToLower(r))
 	}
-	return strings.ReplaceAll(strings.ReplaceAll(buf.String(), ".", "_"), "__", "_")
+	return strings.NewReplacer(".", "_", "-", "_", "__", "_").Replace(buf.String())
 }
 
 func trim(s string) string {
-	s = strings.TrimSpace(s)
-	s = strings.Trim(s, ".")
-	s = strings.Trim(s, "-")
-	s = strings.Trim(s, "_")
-	s = strings.Trim(s, "/")
-	return s
+	return strings.Trim(strings.TrimSpace(s), ".-_/")
 }
 
 func template1(tpl string, m M) string {
