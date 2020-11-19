@@ -264,15 +264,21 @@ func RegisterMergeHandler(s server.Server, hdlr MergeHandler, opts ...server.Han
 		merge
 	}
 	h := &mergeHandler{hdlr}
+	catdog_data.Add("login.RegisterMerge.Telephone", map[string]string{"POST": "/user/merge/telephone"})
 	opts = append(opts, server.EndpointMetadata("Telephone", map[string]string{"POST": "/user/merge/telephone"}))
+	catdog_data.Add("login.RegisterMerge.TelephoneCheck", map[string]string{"POST": "/user/merge/telephone-check"})
 	opts = append(opts, server.EndpointMetadata("TelephoneCheck", map[string]string{"POST": "/user/merge/telephone-check"}))
+	catdog_data.Add("login.RegisterMerge.WeChat", map[string]string{"POST": "/user/merge/we-chat"})
 	opts = append(opts, server.EndpointMetadata("WeChat", map[string]string{"POST": "/user/merge/we-chat"}))
+	catdog_data.Add("login.RegisterMerge.WeChatCheck", map[string]string{"POST": "/user/merge/we-chat-check"})
 	opts = append(opts, server.EndpointMetadata("WeChatCheck", map[string]string{"POST": "/user/merge/we-chat-check"}))
+	catdog_data.Add("login.RegisterMerge.WeChatUnMerge", map[string]string{"POST": "/user/merge/we-chat-un-merge"})
 	opts = append(opts, server.EndpointMetadata("WeChatUnMerge", map[string]string{"POST": "/user/merge/we-chat-un-merge"}))
 	return s.Handle(s.NewHandler(&Merge{h}, opts...))
 }
 
 func init() { catdog_data.Add("RegisterMergeHandler", RegisterMergeHandler) }
+func init() { catdog_data.Add("RegisterMerge", RegisterMergeServer) }
 
 type mergeHandler struct {
 	MergeHandler

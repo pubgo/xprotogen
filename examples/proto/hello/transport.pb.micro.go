@@ -257,14 +257,19 @@ func RegisterTransportHandler(s server.Server, hdlr TransportHandler, opts ...se
 		transport
 	}
 	h := &transportHandler{hdlr}
+	catdog_data.Add("hello.RegisterTransport.TestStream", map[string]string{"POST": "hello_transport/test_stream"})
 	opts = append(opts, server.EndpointMetadata("TestStream", map[string]string{"POST": "hello_transport/test_stream"}))
+	catdog_data.Add("hello.RegisterTransport.TestStream1", map[string]string{"POST": "hello_transport/test_stream1"})
 	opts = append(opts, server.EndpointMetadata("TestStream1", map[string]string{"POST": "hello_transport/test_stream1"}))
+	catdog_data.Add("hello.RegisterTransport.TestStream2", map[string]string{"POST": "hello_transport/test_stream2"})
 	opts = append(opts, server.EndpointMetadata("TestStream2", map[string]string{"POST": "hello_transport/test_stream2"}))
+	catdog_data.Add("hello.RegisterTransport.TestStream3", map[string]string{"POST": "hello_transport/test_stream3"})
 	opts = append(opts, server.EndpointMetadata("TestStream3", map[string]string{"POST": "hello_transport/test_stream3"}))
 	return s.Handle(s.NewHandler(&Transport{h}, opts...))
 }
 
 func init() { catdog_data.Add("RegisterTransportHandler", RegisterTransportHandler) }
+func init() { catdog_data.Add("RegisterTransport", RegisterTransportServer) }
 
 type transportHandler struct {
 	TransportHandler

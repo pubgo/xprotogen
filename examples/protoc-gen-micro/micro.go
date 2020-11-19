@@ -293,6 +293,7 @@ func service(ss *gen.Service) {
         h := &{{.srv1}}Handler{hdlr}`))
 
 		for _, m := range ss.GetMethod() {
+			group.Id(m.P(`catdog_data.Add("{{.pkg}}.Register{{.srv}}.{{.mthName}}",map[string]string{"{{.http_method}}": "{{.http_path}}"})`))
 			group.Id(m.P(`opts = append(opts, server.EndpointMetadata("{{.mthName}}", map[string]string{"{{.http_method}}": "{{.http_path}}"}))`))
 		}
 
@@ -301,6 +302,7 @@ func service(ss *gen.Service) {
 
 	j.Line()
 	j.Id(ss.P(`func init() {catdog_data.Add("Register{{.srv}}Handler",Register{{.srv}}Handler)}`))
+	j.Id(ss.P(`func init() {catdog_data.Add("Register{{.srv}}",Register{{.srv}}Server)}`))
 
 	j.Id(ss.P(`
 	type {{.srv1}}Handler struct {

@@ -141,12 +141,15 @@ func RegisterLoginHandler(s server.Server, hdlr LoginHandler, opts ...server.Han
 		login
 	}
 	h := &loginHandler{hdlr}
+	catdog_data.Add("login.RegisterLogin.Login", map[string]string{"POST": "/user/login/login"})
 	opts = append(opts, server.EndpointMetadata("Login", map[string]string{"POST": "/user/login/login"}))
+	catdog_data.Add("login.RegisterLogin.Authenticate", map[string]string{"POST": "/user/login/authenticate"})
 	opts = append(opts, server.EndpointMetadata("Authenticate", map[string]string{"POST": "/user/login/authenticate"}))
 	return s.Handle(s.NewHandler(&Login{h}, opts...))
 }
 
 func init() { catdog_data.Add("RegisterLoginHandler", RegisterLoginHandler) }
+func init() { catdog_data.Add("RegisterLogin", RegisterLoginServer) }
 
 type loginHandler struct {
 	LoginHandler

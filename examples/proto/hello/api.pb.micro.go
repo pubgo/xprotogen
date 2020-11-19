@@ -141,12 +141,15 @@ func RegisterTestApiHandler(s server.Server, hdlr TestApiHandler, opts ...server
 		testApi
 	}
 	h := &testApiHandler{hdlr}
+	catdog_data.Add("hello.RegisterTestApi.Version", map[string]string{"POST": "hello_test_api/version"})
 	opts = append(opts, server.EndpointMetadata("Version", map[string]string{"POST": "hello_test_api/version"}))
+	catdog_data.Add("hello.RegisterTestApi.VersionTest", map[string]string{"test": "/v1/example/versiontest"})
 	opts = append(opts, server.EndpointMetadata("VersionTest", map[string]string{"test": "/v1/example/versiontest"}))
 	return s.Handle(s.NewHandler(&TestApi{h}, opts...))
 }
 
 func init() { catdog_data.Add("RegisterTestApiHandler", RegisterTestApiHandler) }
+func init() { catdog_data.Add("RegisterTestApi", RegisterTestApiServer) }
 
 type testApiHandler struct {
 	TestApiHandler
@@ -269,12 +272,15 @@ func RegisterTestApiV2Handler(s server.Server, hdlr TestApiV2Handler, opts ...se
 		testApiV2
 	}
 	h := &testApiV2Handler{hdlr}
+	catdog_data.Add("hello.RegisterTestApiV2.Version", map[string]string{"POST": "/v2/example/version"})
 	opts = append(opts, server.EndpointMetadata("Version", map[string]string{"POST": "/v2/example/version"}))
+	catdog_data.Add("hello.RegisterTestApiV2.VersionTest", map[string]string{"POST": "/v2/example/versiontest"})
 	opts = append(opts, server.EndpointMetadata("VersionTest", map[string]string{"POST": "/v2/example/versiontest"}))
 	return s.Handle(s.NewHandler(&TestApiV2{h}, opts...))
 }
 
 func init() { catdog_data.Add("RegisterTestApiV2Handler", RegisterTestApiV2Handler) }
+func init() { catdog_data.Add("RegisterTestApiV2", RegisterTestApiV2Server) }
 
 type testApiV2Handler struct {
 	TestApiV2Handler

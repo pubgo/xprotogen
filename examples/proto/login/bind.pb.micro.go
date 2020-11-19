@@ -305,16 +305,23 @@ func RegisterBindTelephoneHandler(s server.Server, hdlr BindTelephoneHandler, op
 		bindTelephone
 	}
 	h := &bindTelephoneHandler{hdlr}
+	catdog_data.Add("login.RegisterBindTelephone.Check", map[string]string{"POST": "/user/bind-telephone/check"})
 	opts = append(opts, server.EndpointMetadata("Check", map[string]string{"POST": "/user/bind-telephone/check"}))
+	catdog_data.Add("login.RegisterBindTelephone.BindVerify", map[string]string{"POST": "/user/bind-telephone/bind-verify"})
 	opts = append(opts, server.EndpointMetadata("BindVerify", map[string]string{"POST": "/user/bind-telephone/bind-verify"}))
+	catdog_data.Add("login.RegisterBindTelephone.BindChange", map[string]string{"POST": "/user/bind-telephone/bind-change"})
 	opts = append(opts, server.EndpointMetadata("BindChange", map[string]string{"POST": "/user/bind-telephone/bind-change"}))
+	catdog_data.Add("login.RegisterBindTelephone.AutomaticBind", map[string]string{"POST": "/user/bind-telephone/automatic-bind"})
 	opts = append(opts, server.EndpointMetadata("AutomaticBind", map[string]string{"POST": "/user/bind-telephone/automatic-bind"}))
+	catdog_data.Add("login.RegisterBindTelephone.BindPhoneParse", map[string]string{"POST": "/user/bind-telephone/bind-phone-parse"})
 	opts = append(opts, server.EndpointMetadata("BindPhoneParse", map[string]string{"POST": "/user/bind-telephone/bind-phone-parse"}))
+	catdog_data.Add("login.RegisterBindTelephone.BindPhoneParseByOneClick", map[string]string{"POST": "/user/bind-telephone/bind-phone-parse-by-one-click"})
 	opts = append(opts, server.EndpointMetadata("BindPhoneParseByOneClick", map[string]string{"POST": "/user/bind-telephone/bind-phone-parse-by-one-click"}))
 	return s.Handle(s.NewHandler(&BindTelephone{h}, opts...))
 }
 
 func init() { catdog_data.Add("RegisterBindTelephoneHandler", RegisterBindTelephoneHandler) }
+func init() { catdog_data.Add("RegisterBindTelephone", RegisterBindTelephoneServer) }
 
 type bindTelephoneHandler struct {
 	BindTelephoneHandler
