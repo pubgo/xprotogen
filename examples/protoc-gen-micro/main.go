@@ -15,7 +15,7 @@ func main() {
 		log.Println("params:", key, "=", value)
 	})
 
-	xerror.Panic(m.Init(func(fd *gen.FileDescriptor) {
+	xerror.Panic(m.Gen(func(fd *gen.FileDescriptor) {
 		header(fd)
 		for _, ss := range fd.GetService() {
 			service(ss)

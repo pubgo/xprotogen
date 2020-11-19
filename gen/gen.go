@@ -74,7 +74,7 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 	}
 }
 
-func (t *protoGen) Init(init func(fd *FileDescriptor)) (err error) {
+func (t *protoGen) Gen(init func(fd *FileDescriptor)) (err error) {
 	defer xerror.RespErr(&err)
 
 	if init == nil {
