@@ -24,7 +24,7 @@ proto: clear gen
    -I${GOPATH}/src \
    -I${GOPATH}/src/github.com/googleapis/googleapis \
    -I${GOPATH}/src/github.com/gogo/protobuf \
-   --go_out=. \
+   --go_out=plugins=grpc:. \
    --micro_out=. \
 	examples/proto/hello/*
 
@@ -33,7 +33,7 @@ proto: clear gen
    -I${GOPATH}/src \
    -I${GOPATH}/src/github.com/googleapis/googleapis \
    -I${GOPATH}/src/github.com/gogo/protobuf \
-   --go_out=. \
+   --go_out=plugins=grpc:. \
    --micro_out=. \
 	examples/proto/login/*
 

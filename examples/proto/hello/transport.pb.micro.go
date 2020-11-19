@@ -7,8 +7,10 @@ import (
 	fmt "fmt"
 	math "math"
 
-	client "github.com/asim/go-micro/v3/client"
-	server "github.com/asim/go-micro/v3/server"
+	"github.com/pubgo/catdog/catdog_data"
+
+	client "github.com/asim/nitro/v3/client"
+	server "github.com/asim/nitro/v3/server"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -49,7 +51,7 @@ func NewTransportService(name string, c client.Client) TransportService {
 		name: name,
 	}
 }
-func (c *TransportService) TestStream(ctx context.Context, opts ...client.CallOption) (Transport_TestStreamService, error) {
+func (c *transportService) TestStream(ctx context.Context, opts ...client.CallOption) (Transport_TestStreamService, error) {
 
 	req := c.c.NewRequest(c.name, "Transport.TestStream", &Message{})
 	stream, err := c.c.Stream(ctx, req, opts...)
@@ -94,10 +96,6 @@ func (x *TransportTestStream) Send(m *Message) error {
 	return x.stream.Send(m)
 }
 
-func (x *TransportTestStream) Send(m *Message) error {
-	return x.stream.Send(m)
-}
-
 func (x *TransportTestStream) Recv() (*Message, error) {
 	m := new(Message)
 	err := x.stream.Recv(m)
@@ -107,7 +105,7 @@ func (x *TransportTestStream) Recv() (*Message, error) {
 	return m, nil
 }
 
-func (c *TransportService) TestStream1(ctx context.Context, opts ...client.CallOption) (Transport_TestStream1Service, error) {
+func (c *transportService) TestStream1(ctx context.Context, opts ...client.CallOption) (Transport_TestStream1Service, error) {
 
 	req := c.c.NewRequest(c.name, "Transport.TestStream1", &Message{})
 	stream, err := c.c.Stream(ctx, req, opts...)
@@ -150,11 +148,7 @@ func (x *TransportTestStream1) Send(m *Message) error {
 	return x.stream.Send(m)
 }
 
-func (x *TransportTestStream1) Send(m *Message) error {
-	return x.stream.Send(m)
-}
-
-func (c *TransportService) TestStream2(ctx context.Context, in *Message, opts ...client.CallOption) (Transport_TestStream2Service, error) {
+func (c *transportService) TestStream2(ctx context.Context, in *Message, opts ...client.CallOption) (Transport_TestStream2Service, error) {
 
 	req := c.c.NewRequest(c.name, "Transport.TestStream2", &Message{})
 	stream, err := c.c.Stream(ctx, req, opts...)
@@ -196,10 +190,6 @@ func (x *TransportTestStream2) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *TransportTestStream2) Send(m *Message) error {
-	return x.stream.Send(m)
-}
-
 func (x *TransportTestStream2) Recv() (*Message, error) {
 	m := new(Message)
 	err := x.stream.Recv(m)
@@ -209,7 +199,7 @@ func (x *TransportTestStream2) Recv() (*Message, error) {
 	return m, nil
 }
 
-func (c *TransportService) TestStream3(ctx context.Context, in *Message, opts ...client.CallOption) (*Message, error) {
+func (c *transportService) TestStream3(ctx context.Context, in *Message, opts ...client.CallOption) (*Message, error) {
 
 	req := c.c.NewRequest(c.name, "Transport.TestStream3", in)
 	out := new(Message)
@@ -247,10 +237,6 @@ func (x *TransportTestStream3) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *TransportTestStream3) Send(m *Message) error {
-	return x.stream.Send(m)
-}
-
 // Server API for Transport service
 type TransportHandler interface {
 	TestStream(context.Context, Transport_TestStreamStream) error
@@ -278,11 +264,13 @@ func RegisterTransportHandler(s server.Server, hdlr TransportHandler, opts ...se
 	return s.Handle(s.NewHandler(&Transport{h}, opts...))
 }
 
+func init() { catdog_data.Add("RegisterTransportHandler", RegisterTransportHandler) }
+
 type transportHandler struct {
 	TransportHandler
 }
 
-func (h *TransportHandler) TestStream(ctx context.Context, stream server.Stream) error {
+func (h *transportHandler) TestStream(ctx context.Context, stream server.Stream) error {
 
 	return h.TransportHandler.TestStream(ctx, &transportTestStreamStream{stream})
 
@@ -331,7 +319,7 @@ func (x *transportTestStreamStream) Recv() (*Message, error) {
 	return m, nil
 }
 
-func (h *TransportHandler) TestStream1(ctx context.Context, stream server.Stream) error {
+func (h *transportHandler) TestStream1(ctx context.Context, stream server.Stream) error {
 
 	return h.TransportHandler.TestStream1(ctx, &transportTestStream1Stream{stream})
 
@@ -374,7 +362,7 @@ func (x *transportTestStream1Stream) Recv() (*Message, error) {
 	return m, nil
 }
 
-func (h *TransportHandler) TestStream2(ctx context.Context, stream server.Stream) error {
+func (h *transportHandler) TestStream2(ctx context.Context, stream server.Stream) error {
 
 	m := new(Message)
 	if err := stream.Recv(m); err != nil {
@@ -417,43 +405,6 @@ func (x *transportTestStream2Stream) Send(*Message) error {
 	return x.stream.Send(m)
 }
 
-func (h *TransportHandler) TestStream3(ctx context.Context, in *Message, out *Message) error {
+func (h *transportHandler) TestStream3(ctx context.Context, in *Message, out *Message) error {
 	return h.TransportHandler.TestStream3(ctx, in, out)
-}
-
-func (h *TransportHandler) TestStream3(ctx context.Context, stream server.Stream) error {
-
-	m := new(Message)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.TransportHandler.TestStream3(ctx, m, &transportTestStream3Stream{stream})
-
-}
-
-type Transport_TestStream3Stream interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-}
-
-type transportTestStream3Stream struct {
-	stream server.Stream
-}
-
-func (x *transportTestStream3Stream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *transportTestStream3Stream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *transportTestStream3Stream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *transportTestStream3Stream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
 }

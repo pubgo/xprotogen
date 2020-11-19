@@ -7,8 +7,10 @@ import (
 	fmt "fmt"
 	math "math"
 
-	client "github.com/asim/go-micro/v3/client"
-	server "github.com/asim/go-micro/v3/server"
+	"github.com/pubgo/catdog/catdog_data"
+
+	client "github.com/asim/nitro/v3/client"
+	server "github.com/asim/nitro/v3/server"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/golang/protobuf/proto"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
@@ -47,7 +49,7 @@ func NewLoginService(name string, c client.Client) LoginService {
 		name: name,
 	}
 }
-func (c *LoginService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error) {
+func (c *loginService) Login(ctx context.Context, in *LoginRequest, opts ...client.CallOption) (*LoginResponse, error) {
 
 	req := c.c.NewRequest(c.name, "Login.Login", in)
 	out := new(LoginResponse)
@@ -85,11 +87,7 @@ func (x *LoginLogin) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *LoginLogin) Send(m *Message) error {
-	return x.stream.Send(m)
-}
-
-func (c *LoginService) Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...client.CallOption) (*AuthenticateResponse, error) {
+func (c *loginService) Authenticate(ctx context.Context, in *AuthenticateRequest, opts ...client.CallOption) (*AuthenticateResponse, error) {
 
 	req := c.c.NewRequest(c.name, "Login.Authenticate", in)
 	out := new(AuthenticateResponse)
@@ -127,10 +125,6 @@ func (x *LoginAuthenticate) RecvMsg(m interface{}) error {
 	return x.stream.Recv(m)
 }
 
-func (x *LoginAuthenticate) Send(m *Message) error {
-	return x.stream.Send(m)
-}
-
 // Server API for Login service
 type LoginHandler interface {
 	Login(context.Context, *LoginRequest, *LoginResponse) error
@@ -152,88 +146,16 @@ func RegisterLoginHandler(s server.Server, hdlr LoginHandler, opts ...server.Han
 	return s.Handle(s.NewHandler(&Login{h}, opts...))
 }
 
+func init() { catdog_data.Add("RegisterLoginHandler", RegisterLoginHandler) }
+
 type loginHandler struct {
 	LoginHandler
 }
 
-func (h *LoginHandler) Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error {
+func (h *loginHandler) Login(ctx context.Context, in *LoginRequest, out *LoginResponse) error {
 	return h.LoginHandler.Login(ctx, in, out)
 }
 
-func (h *LoginHandler) Login(ctx context.Context, stream server.Stream) error {
-
-	m := new(LoginRequest)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.LoginHandler.Login(ctx, m, &loginLoginStream{stream})
-
-}
-
-type Login_LoginStream interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-}
-
-type loginLoginStream struct {
-	stream server.Stream
-}
-
-func (x *loginLoginStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *loginLoginStream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *loginLoginStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *loginLoginStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (h *LoginHandler) Authenticate(ctx context.Context, in *AuthenticateRequest, out *AuthenticateResponse) error {
+func (h *loginHandler) Authenticate(ctx context.Context, in *AuthenticateRequest, out *AuthenticateResponse) error {
 	return h.LoginHandler.Authenticate(ctx, in, out)
-}
-
-func (h *LoginHandler) Authenticate(ctx context.Context, stream server.Stream) error {
-
-	m := new(AuthenticateRequest)
-	if err := stream.Recv(m); err != nil {
-		return err
-	}
-	return h.LoginHandler.Authenticate(ctx, m, &loginAuthenticateStream{stream})
-
-}
-
-type Login_AuthenticateStream interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-}
-
-type loginAuthenticateStream struct {
-	stream server.Stream
-}
-
-func (x *loginAuthenticateStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *loginAuthenticateStream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *loginAuthenticateStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *loginAuthenticateStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
 }
