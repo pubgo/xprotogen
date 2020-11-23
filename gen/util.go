@@ -169,7 +169,7 @@ func CamelCase(s string) string {
 func DefaultAPIOptions(pkg string, srv string, mth string) *options.HttpRule {
 	return &options.HttpRule{
 		Pattern: &options.HttpRule_Post{
-			Post: camel2Case(fmt.Sprintf("/%s_%s/%s", camel2Case(pkg), camel2Case(srv), camel2Case(mth))),
+			Post: "/" + camel2Case(fmt.Sprintf("%s_%s/%s", camel2Case(pkg), camel2Case(srv), camel2Case(mth))),
 		},
 		Body: "*",
 	}
