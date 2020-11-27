@@ -28,14 +28,14 @@ proto: clear gen
    --micro_out=. \
 	examples/proto/hello/*
 
-	protoc -I. \
-   -I/usr/local/include \
-   -I${GOPATH}/src \
-   -I${GOPATH}/src/github.com/googleapis/googleapis \
-   -I${GOPATH}/src/github.com/gogo/protobuf \
-   --go_out=plugins=grpc:. \
-   --micro_out=. \
-	examples/proto/login/*
+#	protoc -I. \
+#   -I/usr/local/include \
+#   -I${GOPATH}/src \
+#   -I${GOPATH}/src/github.com/googleapis/googleapis \
+#   -I${GOPATH}/src/github.com/gogo/protobuf \
+#   --go_out=plugins=grpc:. \
+#   --micro_out=. \
+#	examples/proto/login/*
 
 .PHONY: clear
 clear:

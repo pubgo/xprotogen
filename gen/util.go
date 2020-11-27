@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
-	"text/template"
 	"unicode"
 
+	"github.com/flosch/pongo2"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/pubgo/xerror"
@@ -95,6 +95,7 @@ func goPackageName(d *descriptor.FileDescriptorProto) (name string, explicit boo
 }
 
 func getTypeName(pkg, mth string) string {
+	mth = strings.TrimSpace(mth)
 	mth = strings.Trim(mth, ".")
 	mth = strings.TrimPrefix(mth, pkg)
 	mth = strings.Trim(mth, ".")
@@ -275,11 +276,11 @@ func trim(s string) string {
 	return strings.Trim(strings.TrimSpace(s), ".-_/")
 }
 
-func template1(tpl string, m M) string {
-	t, err := template.New("main").Parse(tpl)
+func template1(tpl string, m pongo2.Context) string {
+	temp, err := pongo2.FromString(tpl)
 	xerror.PanicF(err, tpl)
 
 	w := bytes.NewBuffer(nil)
-	xerror.PanicF(t.Execute(w, m), tpl)
+	xerror.PanicF(temp.ExecuteWriter(m, w), tpl)
 	return w.String()
 }
