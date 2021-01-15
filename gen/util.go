@@ -165,12 +165,12 @@ func CamelCase(s string) string {
 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests
 // i.e.:
 //   * method is POST
-//   * path is "/<service name>/<method name>"
+//   * path is "<pkg name>/<service name>/<method name>"
 //   * body should contain the serialized request message
 func DefaultAPIOptions(pkg string, srv string, mth string) *options.HttpRule {
 	return &options.HttpRule{
 		Pattern: &options.HttpRule_Post{
-			Post: "/" + camel2Case(fmt.Sprintf("%s_%s/%s", camel2Case(pkg), camel2Case(srv), camel2Case(mth))),
+			Post: "/" + camel2Case(fmt.Sprintf("%s/%s/%s", camel2Case(pkg), camel2Case(srv), camel2Case(mth))),
 		},
 		Body: "*",
 	}
