@@ -11,7 +11,6 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/pubgo/xerror"
 	options "google.golang.org/genproto/googleapis/api/annotations"
-	"google.golang.org/protobuf/types/descriptorpb"
 )
 
 // baseName
@@ -185,7 +184,7 @@ func DefaultHttpRule(name string) *options.HttpRule {
 	}
 }
 
-func ExtractAPIOptions(mth *descriptorpb.MethodDescriptorProto) (*options.HttpRule, error) {
+func ExtractAPIOptions(mth *descriptor.MethodDescriptorProto) (*options.HttpRule, error) {
 	if mth.GetOptions() == nil {
 		return nil, nil
 	}

@@ -11,8 +11,8 @@ import (
 	"github.com/flosch/pongo2"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/pubgo/xerror"
-	plugin "google.golang.org/protobuf/types/pluginpb"
 )
 
 var log = logger.New(os.Stderr, "xprotogen: ", logger.LstdFlags|logger.Lshortfile)
