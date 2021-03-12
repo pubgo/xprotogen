@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
-
 	"github.com/pubgo/xerror"
 	"github.com/pubgo/xprotogen/gen"
+	"log"
 )
 
 func main() {
@@ -53,7 +52,7 @@ import (
 
 		func(fd *gen.FileDescriptor) string {
 			var tpl = ""
-			tpl += `func init() {`
+			gen.Append(&tpl, `func init() {`)
 			for _, ss := range fd.GetService() {
 				var isStream bool
 				for _, m := range ss.GetMethod() {
@@ -63,7 +62,7 @@ import (
 					}
 				}
 
-				tpl += `
+				gen.Append(&tpl, `
 				var mthList []xgen.GrpcRestHandler
 				{%- for m in ss.GetMethod() %}
 					mthList = append(mthList, xgen.GrpcRestHandler{
@@ -75,14 +74,12 @@ import (
 						ServerStreams: "{{m.SS}}"=="True",
 					})
 				{% endfor %}
-				xgen.Add(reflect.ValueOf(Register{{ss.Srv}}Server),mthList)`
+				xgen.Add(reflect.ValueOf(Register{{ss.Srv}}Server),mthList)`)
 				if !isStream {
-					tpl += `xgen.Add(reflect.ValueOf(Register{{ss.Srv}}HandlerFromEndpoint), nil)`
+					gen.Append(&tpl, `xgen.Add(reflect.ValueOf(Register{{ss.Srv}}HandlerFromEndpoint), nil)`)
 				}
 			}
-
-			tpl += `}`
-
+			gen.Append(&tpl, `}`)
 			return tpl
 		},
 	))

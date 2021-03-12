@@ -13,6 +13,12 @@ import (
 	options "google.golang.org/genproto/googleapis/api/annotations"
 )
 
+func Append(s *string, args ...string) {
+	*s += "\n"
+	*s += strings.Join(args, "\n")
+	*s += "\n"
+}
+
 // baseName
 // returns the last path element of the name, with the last dotted suffix removed.
 func baseName(name string) string {

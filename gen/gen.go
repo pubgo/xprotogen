@@ -111,7 +111,9 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 			name = name[:len(name)-len(ext)]
 		}
 
-		dt := xerror.PanicBytes(format.Source([]byte(strings.Join(data, "\n"))))
+		var code = strings.Join(data, "\n")
+		dt, err := format.Source([]byte(code))
+		xerror.Panic(err, code)
 		t.response.File = append(t.response.File, &plugin.CodeGeneratorResponse_File{
 			Name:    proto.String(name + ".pb." + t.name + ".go"),
 			Content: proto.String(string(dt)),
