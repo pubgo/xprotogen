@@ -15,5 +15,5 @@ func main() {
 		log.Println("params:", key, "=", value)
 	})
 
-	xerror.Panic(m.GenWithTpl(tpl))
+	xerror.Panic(m.GenWithTpl())
 }

@@ -26,7 +26,8 @@ proto: clear gen
    -I${GOPATH}/src/github.com/gogo/protobuf \
    --go_out=plugins=grpc:. \
    --micro_out=. \
-	examples/proto/hello/*
+   --golug_out=. \
+	examples/proto/hello/*.proto
 
 #	protoc -I. \
 #   -I/usr/local/include \
@@ -45,3 +46,4 @@ clear:
 .PHONY: gen
 gen:
 	cd examples/protoc-gen-micro && go install .
+	cd examples/protoc-gen-golug && go install .

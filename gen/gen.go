@@ -73,7 +73,7 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 	}
 }
 
-func (t *protoGen) GenWithTpl(tpl string) (err error) {
+func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error) {
 	defer xerror.RespErr(&err)
 
 	for _, name := range t.request.GetFileToGenerate() {
@@ -93,20 +93,25 @@ func (t *protoGen) GenWithTpl(tpl string) (err error) {
 		}
 
 		pkg, _ := goPackageName(fd)
-		data := template1(tpl, pongo2.Context{
-			"fileName": fd.GetName(),
-			"pkg":      pkg,
-			"fd":       &FileDescriptor{Pkg: pkg, FileDescriptorProto: fd},
-			"unExport": UnExport,
-		})
+
+		var data []string
+		for i := range fns {
+			fd1 := &FileDescriptor{Pkg: pkg, FileDescriptorProto: fd}
+			data = append(data, template1(
+				fns[i](fd1),
+				pongo2.Context{
+					"fileName": fd.GetName(),
+					"pkg":      pkg,
+					"fd":       fd1,
+					"unExport": UnExport,
+				}))
+		}
 
 		if ext := path.Ext(name); ext == ".proto" {
 			name = name[:len(name)-len(ext)]
 		}
 
-		dt, err := format.Source([]byte(data))
-		xerror.PanicF(err, data)
-
+		dt := xerror.PanicBytes(format.Source([]byte(strings.Join(data, "\n"))))
 		t.response.File = append(t.response.File, &plugin.CodeGeneratorResponse_File{
 			Name:    proto.String(name + ".pb." + t.name + ".go"),
 			Content: proto.String(string(dt)),
