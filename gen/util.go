@@ -281,7 +281,9 @@ func trim(s string) string {
 	return strings.Trim(strings.TrimSpace(s), ".-_/")
 }
 
-func template1(tpl string, m pongo2.Context) string {
+type Context = pongo2.Context
+
+func Template(tpl string, m pongo2.Context) string {
 	temp, err := pongo2.FromString(tpl)
 	xerror.PanicF(err, tpl)
 

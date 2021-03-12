@@ -30,13 +30,49 @@ func GetTestApiV2Client(srv string, opts ...grpc.DialOption) func() (TestApiV2Cl
 func init() {
 
 	var mthList []xgen.GrpcRestHandler
-	xgen.Add(reflect.ValueOf(RegisterServer), mthList)
 
-	xgen.Add(reflect.ValueOf(RegisterHandlerFromEndpoint), nil)
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.TestApi",
+		Name:          "Version",
+		Method:        "POST",
+		Path:          "/hello/test_api/version",
+		ClientStream:  "False" == "True",
+		ServerStreams: "False" == "True",
+	})
 
-	var mthList []xgen.GrpcRestHandler
-	xgen.Add(reflect.ValueOf(RegisterServer), mthList)
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.TestApi",
+		Name:          "VersionTest",
+		Method:        "test",
+		Path:          "/v1/example/versiontest",
+		ClientStream:  "False" == "True",
+		ServerStreams: "False" == "True",
+	})
 
-	xgen.Add(reflect.ValueOf(RegisterHandlerFromEndpoint), nil)
+	xgen.Add(reflect.ValueOf(RegisterTestApiServer), mthList)
+
+	xgen.Add(reflect.ValueOf(RegisterTestApiHandlerFromEndpoint), nil)
+
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.TestApiV2",
+		Name:          "Version",
+		Method:        "POST",
+		Path:          "/v2/example/version",
+		ClientStream:  "False" == "True",
+		ServerStreams: "False" == "True",
+	})
+
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.TestApiV2",
+		Name:          "VersionTest",
+		Method:        "POST",
+		Path:          "/v2/example/versiontest",
+		ClientStream:  "False" == "True",
+		ServerStreams: "False" == "True",
+	})
+
+	xgen.Add(reflect.ValueOf(RegisterTestApiV2Server), mthList)
+
+	xgen.Add(reflect.ValueOf(RegisterTestApiV2HandlerFromEndpoint), nil)
 
 }

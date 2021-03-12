@@ -22,6 +22,43 @@ func GetTransportClient(srv string, opts ...grpc.DialOption) func() (TransportCl
 func init() {
 
 	var mthList []xgen.GrpcRestHandler
-	xgen.Add(reflect.ValueOf(RegisterServer), mthList)
+
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.Transport",
+		Name:          "TestStream",
+		Method:        "POST",
+		Path:          "/hello/transport/test_stream",
+		ClientStream:  "True" == "True",
+		ServerStreams: "True" == "True",
+	})
+
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.Transport",
+		Name:          "TestStream1",
+		Method:        "POST",
+		Path:          "/hello/transport/test_stream1",
+		ClientStream:  "True" == "True",
+		ServerStreams: "False" == "True",
+	})
+
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.Transport",
+		Name:          "TestStream2",
+		Method:        "POST",
+		Path:          "/hello/transport/test_stream2",
+		ClientStream:  "False" == "True",
+		ServerStreams: "True" == "True",
+	})
+
+	mthList = append(mthList, xgen.GrpcRestHandler{
+		Service:       "hello.Transport",
+		Name:          "TestStream3",
+		Method:        "POST",
+		Path:          "/hello/transport/test_stream3",
+		ClientStream:  "False" == "True",
+		ServerStreams: "False" == "True",
+	})
+
+	xgen.Add(reflect.ValueOf(RegisterTransportServer), mthList)
 
 }

@@ -94,17 +94,11 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 
 		pkg, _ := goPackageName(fd)
 
+		fd1 := &FileDescriptor{Pkg: pkg, FileDescriptorProto: fd}
+		ctx := pongo2.Context{"fileName": fd.GetName(), "pkg": pkg, "fd": fd1, "unExport": UnExport}
 		var data []string
 		for i := range fns {
-			fd1 := &FileDescriptor{Pkg: pkg, FileDescriptorProto: fd}
-			data = append(data, template1(
-				fns[i](fd1),
-				pongo2.Context{
-					"fileName": fd.GetName(),
-					"pkg":      pkg,
-					"fd":       fd1,
-					"unExport": UnExport,
-				}))
+			data = append(data, Template(fns[i](fd1), ctx))
 		}
 
 		if ext := path.Ext(name); ext == ".proto" {

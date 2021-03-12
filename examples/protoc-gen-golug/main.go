@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/pubgo/xerror"
 	"github.com/pubgo/xprotogen/gen"
 	"log"
@@ -31,8 +32,7 @@ import (
 	"google.golang.org/grpc"
 	"github.com/pubgo/golug/xgen"
 	"github.com/pubgo/golug/client/grpclient"
-)
-`
+)`
 		},
 
 		func(fd *gen.FileDescriptor) string {
@@ -53,7 +53,21 @@ import (
 		func(fd *gen.FileDescriptor) string {
 			var tpl = ""
 			gen.Append(&tpl, `func init() {`)
+			gen.Append(&tpl, `var mthList []xgen.GrpcRestHandler`)
 			for _, ss := range fd.GetService() {
+				for _, m := range ss.GetMethod() {
+					gen.Append(&tpl, gen.Template(`
+					mthList = append(mthList, xgen.GrpcRestHandler{
+						Service:      "{{pkg}}.{{ss.Name}}",
+						Name:         "{{m.GetName()}}",
+						Method:       "{{m.HttpMethod}}",
+						Path:          "{{m.HttpPath}}",
+						ClientStream:  "{{m.CS}}"=="True",
+						ServerStreams: "{{m.SS}}"=="True",
+					})`, gen.Context{"pkg": fd.Pkg, "m": m,"ss":ss}))
+				}
+				gen.Append(&tpl, fmt.Sprintf(`xgen.Add(reflect.ValueOf(Register%sServer),mthList)`, ss.Srv))
+
 				var isStream bool
 				for _, m := range ss.GetMethod() {
 					if m.CS || m.SS {
@@ -62,23 +76,11 @@ import (
 					}
 				}
 
-				gen.Append(&tpl, `
-				var mthList []xgen.GrpcRestHandler
-				{%- for m in ss.GetMethod() %}
-					mthList = append(mthList, xgen.GrpcRestHandler{
-						Service:      "{{pkg}}.{{ss.Name}}",
-						Name:         "{{m.GetName()}}",
-						Method:       "{{m.HttpMethod}}",
-						Path:          "{{m.HttpPath}}",
-						ClientStream:  "{{m.CS}}"=="True",
-						ServerStreams: "{{m.SS}}"=="True",
-					})
-				{% endfor %}
-				xgen.Add(reflect.ValueOf(Register{{ss.Srv}}Server),mthList)`)
 				if !isStream {
-					gen.Append(&tpl, `xgen.Add(reflect.ValueOf(Register{{ss.Srv}}HandlerFromEndpoint), nil)`)
+					gen.Append(&tpl, fmt.Sprintf(`xgen.Add(reflect.ValueOf(Register%sHandlerFromEndpoint), nil)`, ss.Srv))
 				}
 			}
+
 			gen.Append(&tpl, `}`)
 			return tpl
 		},
