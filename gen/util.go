@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/flosch/pongo2"
+	"github.com/flosch/pongo2/v4"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/pubgo/xerror"
@@ -290,4 +290,123 @@ func Template(tpl string, m pongo2.Context) string {
 	w := bytes.NewBuffer(nil)
 	xerror.PanicF(temp.ExecuteWriter(m, w), tpl)
 	return w.String()
+}
+
+func goZeroValue(f *descriptor.FieldDescriptorProto) string {
+	const nilString = "nil"
+	if *f.Label == descriptor.FieldDescriptorProto_LABEL_REPEATED {
+		return nilString
+	}
+	switch *f.Type {
+	case descriptor.FieldDescriptorProto_TYPE_DOUBLE:
+		return "0.0"
+	case descriptor.FieldDescriptorProto_TYPE_FLOAT:
+		return "0.0"
+	case descriptor.FieldDescriptorProto_TYPE_INT64:
+		return "0"
+	case descriptor.FieldDescriptorProto_TYPE_UINT64:
+		return "0"
+	case descriptor.FieldDescriptorProto_TYPE_INT32:
+		return "0"
+	case descriptor.FieldDescriptorProto_TYPE_UINT32:
+		return "0"
+	case descriptor.FieldDescriptorProto_TYPE_BOOL:
+		return "false"
+	case descriptor.FieldDescriptorProto_TYPE_STRING:
+		return "\"\""
+	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
+		return nilString
+	case descriptor.FieldDescriptorProto_TYPE_BYTES:
+		return "0"
+	case descriptor.FieldDescriptorProto_TYPE_ENUM:
+		return nilString
+	default:
+		return nilString
+	}
+}
+
+func goPkg(f *descriptor.FileDescriptorProto) string {
+	return f.Options.GetGoPackage()
+}
+
+func goPkgLastElement(f *descriptor.FileDescriptorProto) string {
+	pkg := goPkg(f)
+	pkgSplitted := strings.Split(pkg, "/")
+	return pkgSplitted[len(pkgSplitted)-1]
+}
+
+func httpBody(m *descriptor.MethodDescriptorProto) string {
+
+	ext, err := proto.GetExtension(m.Options, options.E_Http)
+	if err != nil {
+		return err.Error()
+	}
+	opts, ok := ext.(*options.HttpRule)
+	if !ok {
+		return fmt.Sprintf("extension is %T; want an HttpRule", ext)
+	}
+	return opts.Body
+}
+
+func httpVerb(m *descriptor.MethodDescriptorProto) string {
+
+	ext, err := proto.GetExtension(m.Options, options.E_Http)
+	if err != nil {
+		return err.Error()
+	}
+	opts, ok := ext.(*options.HttpRule)
+	if !ok {
+		return fmt.Sprintf("extension is %T; want an HttpRule", ext)
+	}
+
+	switch t := opts.Pattern.(type) {
+	default:
+		return ""
+	case *options.HttpRule_Get:
+		return "GET"
+	case *options.HttpRule_Post:
+		return "POST"
+	case *options.HttpRule_Put:
+		return "PUT"
+	case *options.HttpRule_Delete:
+		return "DELETE"
+	case *options.HttpRule_Patch:
+		return "PATCH"
+	case *options.HttpRule_Custom:
+		return t.Custom.Kind
+	}
+}
+
+func httpPathsAdditionalBindings(m *descriptor.MethodDescriptorProto) []string {
+	ext, err := proto.GetExtension(m.Options, options.E_Http)
+	if err != nil {
+		panic(err.Error())
+	}
+	opts, ok := ext.(*options.HttpRule)
+	if !ok {
+		panic(fmt.Sprintf("extension is %T; want an HttpRule", ext))
+	}
+
+	var httpPaths []string
+	var optsAdditionalBindings = opts.GetAdditionalBindings()
+	for _, optAdditionalBindings := range optsAdditionalBindings {
+		switch t := optAdditionalBindings.Pattern.(type) {
+		case *options.HttpRule_Get:
+			httpPaths = append(httpPaths, t.Get)
+		case *options.HttpRule_Post:
+			httpPaths = append(httpPaths, t.Post)
+		case *options.HttpRule_Put:
+			httpPaths = append(httpPaths, t.Put)
+		case *options.HttpRule_Delete:
+			httpPaths = append(httpPaths, t.Delete)
+		case *options.HttpRule_Patch:
+			httpPaths = append(httpPaths, t.Patch)
+		case *options.HttpRule_Custom:
+			httpPaths = append(httpPaths, t.Custom.Path)
+		default:
+			// nothing
+		}
+	}
+
+	return httpPaths
 }

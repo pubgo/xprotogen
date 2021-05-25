@@ -8,7 +8,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/flosch/pongo2"
+	_ "github.com/flosch/pongo2-addons"
+	"github.com/flosch/pongo2/v4"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
@@ -17,8 +18,14 @@ import (
 
 var log = logger.New(os.Stderr, "xprotogen: ", logger.LstdFlags|logger.Lshortfile)
 
-func New(name string) *protoGen {
-	p := &protoGen{name: name}
+type opts struct {
+	onlyService bool
+}
+
+type Opt = func(opt opts) error
+
+func New(name string, opts ...Opt) *protoGen {
+	p := &protoGen{name: name, ImportMap: make(map[string]string)}
 
 	data := xerror.PanicBytes(ioutil.ReadAll(os.Stdin))
 	xerror.Panic(proto.Unmarshal(data, &p.request))
@@ -36,10 +43,10 @@ type protoGen struct {
 	response            plugin.CodeGeneratorResponse
 	PathsSourceRelative bool
 	ImportMap           map[string]string
+	opts                opts
 }
 
 func (t *protoGen) Parameter(fn func(key, value string)) {
-	var data = make(map[string]string)
 	for _, param := range strings.Split(t.request.GetParameter(), ",") {
 		var value string
 		if i := strings.Index(param, "="); i >= 0 {
@@ -51,7 +58,6 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 			continue
 		}
 
-		// case "import_prefix", "import_path":
 		switch {
 		case param == "paths":
 			if value == "source_relative" {
@@ -64,12 +70,8 @@ func (t *protoGen) Parameter(fn func(key, value string)) {
 		case param[0] == 'M':
 			t.ImportMap[param[1:]] = value
 		default:
-			data[param] = value
+			fn(param, value)
 		}
-	}
-
-	for k, v := range data {
-		fn(k, v)
 	}
 }
 
@@ -88,7 +90,7 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 			return xerror.Fmt("could not find the .proto file for %s", name)
 		}
 
-		if len(fd.GetService()) == 0 {
+		if t.opts.onlyService && len(fd.GetService()) == 0 {
 			continue
 		}
 
@@ -145,7 +147,7 @@ type Service struct {
 
 func (t *Service) GetMethod() (methods []*Method) {
 	for _, mth := range t.ServiceDescriptorProto.GetMethod() {
-		m := &Method{Srv: t.GetName(), MethodDescriptorProto: mth, Pkg: t.Pkg}
+		m := &Method{Srv: t.GetName(), md: mth, Pkg: t.Pkg}
 		m.Name = m.GetName()
 		m.InType = m.GetInputType()
 		m.OutType = m.GetOutputType()
@@ -174,23 +176,18 @@ type Method struct {
 	HttpPath   string
 	Srv        string
 	Pkg        string
-	*descriptor.MethodDescriptorProto
+	md         *descriptor.MethodDescriptorProto
 }
 
-func (t *Method) GetName() string {
-	return CamelCase(t.MethodDescriptorProto.GetName())
-}
-
-func (t *Method) GetInputType() string {
-	return getTypeName(t.Pkg, t.MethodDescriptorProto.GetInputType())
-}
-
-func (t *Method) GetOutputType() string {
-	return getTypeName(t.Pkg, t.MethodDescriptorProto.GetOutputType())
-}
+func (t *Method) GetClientStreaming() bool              { return t.md.GetClientStreaming() }
+func (t *Method) GetServerStreaming() bool              { return t.md.GetServerStreaming() }
+func (t *Method) GetOptions() *descriptor.MethodOptions { return t.md.GetOptions() }
+func (t *Method) GetName() string                       { return CamelCase(t.md.GetName()) }
+func (t *Method) GetInputType() string                  { return getTypeName(t.Pkg, t.md.GetInputType()) }
+func (t *Method) GetOutputType() string                 { return getTypeName(t.Pkg, t.md.GetOutputType()) }
 
 func (t *Method) GetHttpMethod() (method string, path string) {
-	hr, err := ExtractAPIOptions(t.MethodDescriptorProto)
+	hr, err := ExtractAPIOptions(t.md)
 	if err != nil || hr == nil {
 		hr = DefaultAPIOptions(t.Pkg, t.Srv, t.GetName())
 	}
