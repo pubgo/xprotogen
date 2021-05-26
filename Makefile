@@ -47,4 +47,4 @@ clear:
 
 .PHONY: gen
 gen:
-	cd examples/protoc-gen-golug && go install .
+	cd examples/protoc-gen-lug && go install .

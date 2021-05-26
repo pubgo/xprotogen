@@ -22,10 +22,21 @@ type opts struct {
 	onlyService bool
 }
 
-type Opt = func(opt opts) error
+type Opt = func(opt *opts) error
+
+func OnlyService() Opt {
+	return func(opt *opts) error {
+		opt.onlyService = true
+		return nil
+	}
+}
 
 func New(name string, opts ...Opt) *protoGen {
 	p := &protoGen{name: name, ImportMap: make(map[string]string)}
+
+	for i := range opts {
+		xerror.Panic(opts[i](&p.opts))
+	}
 
 	data := xerror.PanicBytes(ioutil.ReadAll(os.Stdin))
 	xerror.Panic(proto.Unmarshal(data, &p.request))
