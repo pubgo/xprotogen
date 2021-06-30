@@ -2,13 +2,18 @@ package gen
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
+	"go/format"
+	"io"
+	"io/ioutil"
 	"strings"
 	"unicode"
 
 	"github.com/flosch/pongo2/v4"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
+	plugin "github.com/golang/protobuf/protoc-gen-go/plugin"
 	"github.com/pubgo/xerror"
 	options "google.golang.org/genproto/googleapis/api/annotations"
 )
@@ -409,4 +414,42 @@ func httpPathsAdditionalBindings(m *descriptor.MethodDescriptorProto) []string {
 	}
 
 	return httpPaths
+}
+
+func ParseRequest(r io.Reader) (*plugin.CodeGeneratorRequest, error) {
+	input, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read code generator request: %v", err)
+	}
+	req := new(plugin.CodeGeneratorRequest)
+	if err = proto.Unmarshal(input, req); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal code generator request: %v", err)
+	}
+	return req, nil
+}
+
+func ParseParameter(args string) {
+	if args == "" {
+		return
+	}
+
+	for _, arg := range strings.Split(args, ",") {
+		spec := strings.SplitN(arg, "=", 2)
+		if len(spec) == 1 {
+			xerror.Panic(flag.CommandLine.Set(spec[0], ""), "Cannot set flag %s", args)
+			continue
+		}
+
+		key, value := spec[0], spec[1]
+		if strings.HasPrefix(key, "M") {
+			continue
+		}
+
+		xerror.Panic(flag.CommandLine.Set(key, value), "Cannot set flag %s", arg)
+	}
+}
+
+func SourceCode(buf *bytes.Buffer) (string, error) {
+	code, err := format.Source(buf.Bytes())
+	return string(code), err
 }
