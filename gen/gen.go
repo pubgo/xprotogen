@@ -108,7 +108,25 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 		pkg, _ := goPackageName(fd)
 
 		fd1 := &FileDescriptor{Pkg: pkg, FileDescriptorProto: fd}
-		ctx := pongo2.Context{"fileName": fd.GetName(), "pkg": pkg, "fd": fd1, "unExport": UnExport}
+		ctx := pongo2.Context{
+			"fileName": fd.GetName(),
+			"pkg":      pkg,
+			"fd":       fd1,
+			"unExport": UnExport,
+			"import": func(name string) string {
+				if strings.Contains(name, "/") {
+					var names = strings.Split(name, "/")
+					name = names[len(names)-1]
+				}
+
+				if strings.Contains(name, ".") {
+					var names = strings.Split(name, ".")
+					name = names[len(names)-1]
+				}
+
+				return name
+			},
+		}
 		var data []string
 		for i := range fns {
 			data = append(data, Template(fns[i](fd1), ctx))
