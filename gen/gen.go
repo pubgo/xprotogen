@@ -110,21 +110,20 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 		fd1 := &FileDescriptor{Pkg: pkg, FileDescriptorProto: fd}
 		ctx := pongo2.Context{
 			"fileName": fd.GetName(),
-			"pkg":      pkg,
 			"fd":       fd1,
 			"unExport": UnExport,
-			"package": func(name string) string {
-				if strings.Contains(name, "/") {
-					var names = strings.Split(name, "/")
-					name = names[len(names)-1]
+			"pkg": func() string {
+				if strings.Contains(pkg, "/") {
+					var names = strings.Split(pkg, "/")
+					return names[len(names)-1]
 				}
 
-				if strings.Contains(name, ".") {
-					var names = strings.Split(name, ".")
-					name = names[len(names)-1]
+				if strings.Contains(pkg, ".") {
+					var names = strings.Split(pkg, ".")
+					return names[len(names)-1]
 				}
 
-				return name
+				return pkg
 			},
 		}
 		var data []string

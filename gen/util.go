@@ -453,17 +453,3 @@ func SourceCode(buf *bytes.Buffer) (string, error) {
 	code, err := format.Source(buf.Bytes())
 	return string(code), err
 }
-
-func importHandle(name string) string {
-	if strings.Contains(name, "/") {
-		var names = strings.Split(name, "/")
-		name = names[len(names)-1]
-	}
-
-	if strings.Contains(name, ".") {
-		var names = strings.Split(name, ".")
-		name = names[len(names)-1]
-	}
-
-	return name
-}
