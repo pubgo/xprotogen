@@ -436,7 +436,7 @@ func ParseParameter(args string) {
 	for _, arg := range strings.Split(args, ",") {
 		spec := strings.SplitN(arg, "=", 2)
 		if len(spec) == 1 {
-			xerror.Panic(flag.CommandLine.Set(spec[0], ""), "Cannot set flag %s", args)
+			xerror.PanicF(flag.CommandLine.Set(spec[0], ""), "Cannot set flag %s", args)
 			continue
 		}
 
@@ -445,11 +445,25 @@ func ParseParameter(args string) {
 			continue
 		}
 
-		xerror.Panic(flag.CommandLine.Set(key, value), "Cannot set flag %s", arg)
+		xerror.PanicF(flag.CommandLine.Set(key, value), "Cannot set flag %s", arg)
 	}
 }
 
 func SourceCode(buf *bytes.Buffer) (string, error) {
 	code, err := format.Source(buf.Bytes())
 	return string(code), err
+}
+
+func importHandle(name string) string {
+	if strings.Contains(name, "/") {
+		var names = strings.Split(name, "/")
+		name = names[len(names)-1]
+	}
+
+	if strings.Contains(name, ".") {
+		var names = strings.Split(name, ".")
+		name = names[len(names)-1]
+	}
+
+	return name
 }

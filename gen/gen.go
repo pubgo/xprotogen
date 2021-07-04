@@ -113,7 +113,7 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 			"pkg":      pkg,
 			"fd":       fd1,
 			"unExport": UnExport,
-			"import": func(name string) string {
+			"package": func(name string) string {
 				if strings.Contains(name, "/") {
 					var names = strings.Split(name, "/")
 					name = names[len(names)-1]
