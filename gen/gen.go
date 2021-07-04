@@ -115,12 +115,12 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 			"pkg": func() string {
 				if strings.Contains(pkg, "/") {
 					var names = strings.Split(pkg, "/")
-					return names[len(names)-1]
+					return names[0]
 				}
 
 				if strings.Contains(pkg, ".") {
 					var names = strings.Split(pkg, ".")
-					return names[len(names)-1]
+					return names[0]
 				}
 
 				return pkg

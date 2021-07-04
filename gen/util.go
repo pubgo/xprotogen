@@ -94,7 +94,7 @@ func goPackageName(d *descriptor.FileDescriptorProto) (name string, explicit boo
 	//if _, pkg, ok := goPackageOption(d); ok {
 	//	return pkg, true
 	//}
-	//
+
 	// Does the file have a package clause?
 	if pkg := d.GetPackage(); pkg != "" {
 		return pkg, false
