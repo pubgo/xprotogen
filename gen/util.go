@@ -91,10 +91,10 @@ func goPackageOption(d *descriptor.FileDescriptorProto) (impPath, pkg string, ok
 // or the input file name.
 func goPackageName(d *descriptor.FileDescriptorProto) (name string, explicit bool) {
 	// Does the file have a "go_package" option?
-	if _, pkg, ok := goPackageOption(d); ok {
-		return pkg, true
-	}
-
+	//if _, pkg, ok := goPackageOption(d); ok {
+	//	return pkg, true
+	//}
+	//
 	// Does the file have a package clause?
 	if pkg := d.GetPackage(); pkg != "" {
 		return pkg, false
