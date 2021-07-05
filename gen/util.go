@@ -275,11 +275,11 @@ func camel2Case(name string) string {
 		}
 
 		if i != 0 {
-			buf.WriteRune('_')
+			buf.WriteRune('-')
 		}
 		buf.WriteRune(unicode.ToLower(r))
 	}
-	return strings.NewReplacer(".", "_", "-", "_", "__", "_").Replace(buf.String())
+	return strings.NewReplacer(".", "-", "_", "-", "--", "-").Replace(buf.String())
 }
 
 func trim(s string) string {

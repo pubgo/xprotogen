@@ -182,9 +182,10 @@ func (t *Service) GetMethod() (methods []*Method) {
 		m.CS = m.GetClientStreaming()
 		m.SS = m.GetServerStreaming()
 
-		httpMethod, httpPath := m.GetHttpMethod()
+		httpMethod, httpPath, defaultUrl := m.GetHttpMethod()
 		m.HttpMethod = httpMethod
 		m.HttpPath = httpPath
+		m.DefaultUrl = defaultUrl
 		methods = append(methods, m)
 	}
 	return methods
@@ -202,6 +203,7 @@ type Method struct {
 	Name       string
 	HttpMethod string
 	HttpPath   string
+	DefaultUrl bool
 	Srv        string
 	Pkg        string
 	md         *descriptor.MethodDescriptorProto
@@ -214,10 +216,12 @@ func (t *Method) GetName() string                       { return CamelCase(t.md.
 func (t *Method) GetInputType() string                  { return getTypeName(t.Pkg, t.md.GetInputType()) }
 func (t *Method) GetOutputType() string                 { return getTypeName(t.Pkg, t.md.GetOutputType()) }
 
-func (t *Method) GetHttpMethod() (method string, path string) {
+func (t *Method) GetHttpMethod() (method string, path string, defaultUrl bool) {
 	hr, err := ExtractAPIOptions(t.md)
 	if err != nil || hr == nil {
+		defaultUrl = true
 		hr = DefaultAPIOptions(t.Pkg, t.Srv, t.GetName())
 	}
-	return ExtractHttpMethod(hr)
+	method, path = ExtractHttpMethod(hr)
+	return
 }
