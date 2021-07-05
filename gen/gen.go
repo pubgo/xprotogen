@@ -173,6 +173,16 @@ type Service struct {
 	*descriptor.ServiceDescriptorProto
 }
 
+func (t *Service) IsDefault() bool {
+	var ok bool
+	for _, mth := range t.GetMethod() {
+		if mth.DefaultUrl {
+			ok = true
+		}
+	}
+	return ok
+}
+
 func (t *Service) GetMethod() (methods []*Method) {
 	for _, mth := range t.ServiceDescriptorProto.GetMethod() {
 		m := &Method{Srv: t.GetName(), md: mth, Pkg: t.Pkg}
