@@ -3,7 +3,7 @@ package gen
 import (
 	"go/format"
 	"io/ioutil"
-	logger "log"
+	stdLog "log"
 	"os"
 	"path"
 	"strings"
@@ -16,7 +16,7 @@ import (
 	"github.com/pubgo/xerror"
 )
 
-var log = logger.New(os.Stderr, "xprotogen: ", logger.LstdFlags|logger.Lshortfile)
+var log = stdLog.New(os.Stderr, "xprotogen: ", stdLog.LstdFlags|stdLog.Lshortfile)
 
 type opts struct {
 	onlyService bool
@@ -32,7 +32,12 @@ func OnlyService() Opt {
 }
 
 func New(name string, opts ...Opt) *protoGen {
-	p := &protoGen{name: name, ImportMap: make(map[string]string)}
+	p := &protoGen{
+		name: name,
+		ImportMap: map[string]string{
+			"google.protobuf.Value": "structpb.Value",
+		},
+	}
 
 	for i := range opts {
 		xerror.Panic(opts[i](&p.opts))
@@ -55,6 +60,14 @@ type protoGen struct {
 	PathsSourceRelative bool
 	ImportMap           map[string]string
 	opts                opts
+}
+
+func (t *protoGen) goType(name string) string {
+	var nm, ok = t.ImportMap[name]
+	if ok {
+		return nm
+	}
+	return name
 }
 
 func (t *protoGen) Parameter(fn func(key, value string)) {
@@ -112,6 +125,7 @@ func (t *protoGen) GenWithTpl(fns ...func(fd *FileDescriptor) string) (err error
 			"fileName": fd.GetName(),
 			"fd":       fd1,
 			"unExport": UnExport,
+			"goType":   t.goType,
 			"pkg": func() string {
 				if strings.Contains(pkg, "/") {
 					var names = strings.Split(pkg, "/")

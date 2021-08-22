@@ -1,17 +1,16 @@
 package main
 
 import (
-	"fmt"
-	"log"
-
 	"github.com/pubgo/xerror"
 	"github.com/pubgo/xprotogen/gen"
+
+	"log"
 )
 
 func main() {
-	defer xerror.RespExit()
+	defer xerror.RespDebug()
 
-	m := gen.New("lug")
+	m := gen.New("lug", gen.OnlyService())
 	m.Parameter(func(key, value string) {
 		log.Println("params:", key, "=", value)
 	})
@@ -26,25 +25,43 @@ func main() {
 // {{fd.GetName()}} is a deprecated file.
 {%- endif %}
 
-package {{pkg}}
+package {{pkg()}}
 import (
 	"reflect"
+	"strings"
 
-	"github.com/pubgo/xerror"
-	"google.golang.org/grpc"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/utils"
+	fb "github.com/pubgo/lug/builder/fiber"
+	"github.com/pubgo/lug/pkg/gutil"
+	"github.com/pubgo/lug/plugins/grpcc"
 	"github.com/pubgo/lug/xgen"
-	"github.com/pubgo/lug/client/grpcc"
-)`
+	"github.com/pubgo/xerror"
+)
+
+var _ = strings.Trim
+var _ = utils.UnsafeString
+var _ fiber.Router = nil
+var _ = gutil.MapFormByTag
+var _ = fb.Cfg{}
+`
 		},
 
 		func(fd *gen.FileDescriptor) string {
 			return `
 {% for ss in fd.GetService() %}
-	func Get{{ss.Srv}}Client(srv string, optFns ...func(service string) []grpc.DialOption) func() ({{ss.Srv}}Client,error) {
-		client := grpcc.GetClient(srv, optFns...)
-		return func() ({{ss.Srv}}Client,error) {
+	func Get{{ss.Srv}}Client(srv string, opts ...func(cfg *grpcc.Cfg)) func(func(cli {{ss.Srv}}Client)) error {
+		client := grpcc.GetClient(srv, opts...)
+		return func(fn func(cli {{ss.Srv}}Client)) (err error) {
+			defer xerror.RespErr(&err)
+
 			c, err := client.Get()
-			return &{{unExport(ss.Srv)}}Client{c},xerror.WrapF(err, "srv: %s", srv)
+			if err!=nil{
+				return xerror.WrapF(err, "srv: %s", srv)
+			}
+			
+			fn(&{{unExport(ss.Srv)}}Client{c})
+			return
 		}
 	}
 {% endfor %}
@@ -52,38 +69,107 @@ import (
 		},
 
 		func(fd *gen.FileDescriptor) string {
-			var tpl = ""
-			gen.Append(&tpl, `func init() {`)
-			gen.Append(&tpl, `var mthList []xgen.GrpcRestHandler`)
-			for _, ss := range fd.GetService() {
-				for _, m := range ss.GetMethod() {
-					gen.Append(&tpl, gen.Template(`
-					mthList = append(mthList, xgen.GrpcRestHandler{
-						Service:      "{{pkg}}.{{ss.Name}}",
-						Name:         "{{m.GetName()}}",
-						Method:       "{{m.HttpMethod}}",
-						path:          "{{m.HttpPath}}",
-						ClientStream:  "{{m.CS}}"=="True",
-						ServerStreams: "{{m.SS}}"=="True",
-					})`, gen.Context{"pkg": fd.Pkg, "m": m, "ss": ss}))
-				}
-				gen.Append(&tpl, fmt.Sprintf(`xgen.Add(reflect.ValueOf(Register%sServer),mthList)`, ss.Srv))
+			return `
+{% for ss in fd.GetService() %}
+	func init(){
+		var mthList []xgen.GrpcRestHandler
+		{% for m in ss.GetMethod() %}
+			mthList = append(mthList, xgen.GrpcRestHandler{
+				Service:      "{{ss.Pkg}}.{{ss.Name}}",
+				Name:         "{{m.GetName()}}",
+				Method:       "{{m.HttpMethod}}",
+				Path:          "{{m.HttpPath}}",
+				ClientStream:  "{{m.CS}}"=="True",
+				ServerStream: "{{m.SS}}"=="True",
+				DefaultUrl: "{{ss.IsDefault()}}"=="True",
+			})
+		{% endfor %}
+		xgen.Add(reflect.ValueOf(Register{{ss.Srv}}Server),mthList)
+		xgen.Add(reflect.ValueOf(Register{{ss.Srv}}RestServer),nil)
 
-				var isStream bool
-				for _, m := range ss.GetMethod() {
-					if m.CS || m.SS {
-						isStream = true
-						break
+		{%- if !ss.IsDefault() %}
+			xgen.Add(reflect.ValueOf(Register{{ss.Srv}}Handler),Register{{ss.Srv}}Server)
+		{%- endif %}
+	}
+{% endfor %}
+`
+		},
+		func(fd *gen.FileDescriptor) string {
+			return `
+{% for ss in fd.GetService() %}
+	func Register{{ss.Srv}}RestServer(app fiber.Router, server {{ss.Srv}}Server) {
+		xerror.Assert(app == nil || server == nil, "app is nil or server is nil")
+
+		{% for m in ss.GetMethod() %}
+			{%- if !m.CS && !m.SS %}
+			// restful
+			app.Add("{{m.HttpMethod}}","{{m.HttpPath}}", func(ctx *fiber.Ctx) error {
+				var req = new({{m.GetInputType()}})
+				{%- if m.HttpMethod=="GET" %}
+					data := make(map[string][]string)
+					ctx.Context().QueryArgs().VisitAll(func(key []byte, val []byte) {
+						k := utils.UnsafeString(key)
+						v := utils.UnsafeString(val)
+						if strings.Contains(v, ",") && gutil.EqualFieldType(req, reflect.Slice, k) {
+							values := strings.Split(v, ",")
+							for i := 0; i < len(values); i++ {
+								data[k] = append(data[k], values[i])
+							}
+						} else {
+							data[k] = append(data[k], v)
+						}
+					})
+					xerror.Panic(gutil.MapFormByTag(req, data, "json"))
+					var resp,err=server.{{m.GetName()}}(ctx.UserContext(),req)
+					if err!=nil{
+						return xerror.Wrap(err)
 					}
-				}
+	
+					return xerror.Wrap(ctx.JSON(resp))
+				{%- else %}
+					if err := ctx.BodyParser(req); err != nil {
+						return xerror.Wrap(err)
+					}
 
-				if !isStream {
-					gen.Append(&tpl, fmt.Sprintf(`xgen.Add(reflect.ValueOf(Register%sHandlerFromEndpoint), nil)`, ss.Srv))
-				}
-			}
+					var resp,err=server.{{m.GetName()}}(ctx.UserContext(),req)
+					if err!=nil{
+						return xerror.Wrap(err)
+					}
+	
+					return xerror.Wrap(ctx.JSON(resp))
+				{%- endif %}
+			})
+			{%- else %}
 
-			gen.Append(&tpl, `}`)
-			return tpl
+			// websockets
+			app.Get("{{m.HttpPath}}",fb.NewWs(func(ctx *fiber.Ctx,c *fb.Conn) {
+				{%- if m.SS && !m.CS %}
+					var req = new({{m.GetInputType()}})
+					data := make(map[string][]string)
+					ctx.Context().QueryArgs().VisitAll(func(key []byte, val []byte) {
+						k := utils.UnsafeString(key)
+						v := utils.UnsafeString(val)
+						if strings.Contains(v, ",") && gutil.EqualFieldType(req, reflect.Slice, k) {
+							values := strings.Split(v, ",")
+							for i := 0; i < len(values); i++ {
+								data[k] = append(data[k], values[i])
+							}
+						} else {
+							data[k] = append(data[k], v)
+						}
+					})
+
+					xerror.Panic(gutil.MapFormByTag(req, data, "json"))
+					xerror.Panic(server.{{m.GetName()}}(req,&{{unExport(ss.Srv)}}{{m.GetName()}}Server{fb.NewWsStream(ctx,c)}))
+				{%- else %}
+					xerror.Panic(server.{{m.GetName()}}(&{{unExport(ss.Srv)}}{{m.GetName()}}Server{fb.NewWsStream(ctx,c)}))
+				{%- endif %}
+			}))
+			{%- endif %}
+		{% endfor %}
+	}
+{% endfor %}
+`
 		},
 	))
 }
