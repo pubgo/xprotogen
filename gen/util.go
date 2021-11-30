@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"io"
 	"io/ioutil"
+	"log"
 	"strings"
 	"unicode"
 
@@ -46,7 +47,7 @@ func getGoPackage(fd *descriptor.FileDescriptorProto) string {
 	if strings.Contains(pkg, ";") {
 		parts := strings.Split(pkg, ";")
 		if len(parts) > 2 {
-			log.Fatalf("protoc-gen-nrpc: go_package '%s' contains more than 1 ';'", pkg)
+			log.Fatalf("go_package '%s' contains more than 1 ';'", pkg)
 		}
 		pkg = parts[1]
 	}
@@ -334,14 +335,7 @@ func goPkg(f *descriptor.FileDescriptorProto) string {
 	return f.Options.GetGoPackage()
 }
 
-func goPkgLastElement(f *descriptor.FileDescriptorProto) string {
-	pkg := goPkg(f)
-	pkgSplitted := strings.Split(pkg, "/")
-	return pkgSplitted[len(pkgSplitted)-1]
-}
-
 func httpBody(m *descriptor.MethodDescriptorProto) string {
-
 	ext, err := proto.GetExtension(m.Options, options.E_Http)
 	if err != nil {
 		return err.Error()
@@ -354,7 +348,6 @@ func httpBody(m *descriptor.MethodDescriptorProto) string {
 }
 
 func httpVerb(m *descriptor.MethodDescriptorProto) string {
-
 	ext, err := proto.GetExtension(m.Options, options.E_Http)
 	if err != nil {
 		return err.Error()
@@ -449,7 +442,8 @@ func ParseParameter(args string) {
 	}
 }
 
-func SourceCode(buf *bytes.Buffer) (string, error) {
+// CodeFormat go code format
+func CodeFormat(buf *bytes.Buffer) (string, error) {
 	code, err := format.Source(buf.Bytes())
 	return string(code), err
 }
